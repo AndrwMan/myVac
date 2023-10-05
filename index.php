@@ -13,15 +13,8 @@
 
     <?php
     // FRED data fetching
-
-    // Fetching data for 3 months yield
-    // $fred_api_key = 'fc29dfd642dbcd4d5c2d996a6e018b24';
-    // $series_id = 'GS3M';
-    // $start_date = '1999-01-01';
-    // $end_date = date('Y-m-d'); // Today's date
-
-    //$api_url = "https://api.stlouisfed.org/fred/series/observations?series_id=$series_id&api_key=$fred_api_key&observation_start=$start_date&observation_end=$end_date&file_type=json";
-	
+    // Fetching yield data for 3-months marturity bonds 
+	//  ensure safe handling of special characters (ie:' ', '&') in url with encode()
 	$base_url = "https://api.stlouisfed.org/fred/series/observations";
 	$series_id = urlencode('GS3M');
 	$fred_api_key = urlencode('fc29dfd642dbcd4d5c2d996a6e018b24');
