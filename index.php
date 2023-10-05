@@ -13,37 +13,50 @@
 
     <?php
     // FRED data fetching
-    // Fetching yield data for 3-months marturity bonds 
+    // Fetch yield data for bonds w/ 3-months to 30 years maturity horizons 
+	// Map selected series_ids to series_names 
+	$series_ids = array(
+		'GS3M' => '3-Month Treasury Constant Maturity Rate',
+		'GS2' => '2-Year Treasury Constant Maturity Rate',
+		'GS5' => '5-Year Treasury Constant Maturity Rate',
+		'GS10' => '10-Year Treasury Constant Maturity Rate',
+		'GS20' => '20-Year Treasury Constant Maturity Rate',
+		'GS30' => '30-Year Treasury Constant Maturity Rate'
+	);
+
+	//specify desired time range of data
 	//  ensure safe handling of special characters (ie:' ', '&') in url with encode()
-	$base_url = "https://api.stlouisfed.org/fred/series/observations";
-	$series_id = urlencode('GS3M');
-	$fred_api_key = urlencode('fc29dfd642dbcd4d5c2d996a6e018b24');
 	$start_date = urlencode('1999-01-01');
-	$end_date = urlencode(date('Y-m-d'));
+	$end_date = urlencode(date('Y-m-d'));	//today's date
+
+	$base_url = "https://api.stlouisfed.org/fred/series/observations";
+	$api_key = urlencode('fc29dfd642dbcd4d5c2d996a6e018b24'); //generated FRED apiKey
+	
 	$file_type = urlencode("json");
 
-	$api_url = "{$base_url}?series_id={$series_id}&api_key={$fred_api_key}&observation_start={$start_date}&observation_end={$end_date}&file_type={$file_type}";
+	// equivalent to `for series_id, series_name in series_ids.items():`
+	//  in Python, getting key and value pairs from iterable
+	foreach ($series_ids as $series_id => $series_name) {
+		$url = "{$base_url}?series_id={$series_id}&api_key={$api_key}&observation_start={$start_date}&observation_end={$end_date}&file_type={$file_type}";
+		//echo $url; 
+		// Make the API request
+		$response = file_get_contents($url);
 	
-	echo $api_url;
-
-    $response = file_get_contents($api_url);
-    if ($response) {
-        $data = json_decode($response, true);
-        
-        echo "<h2>3-Month Treasury Constant Maturity Rate</h2>";
-        echo "<table>";
-        echo "<tr><th>Date</th><th>Value</th></tr>";
-        
-        foreach ($data['observations'] as $observation) {
-            $date = $observation['date'];
-            $value = $observation['value'];
-            echo "<tr><td>$date</td><td>$value</td></tr>";
-        }
-        
-        echo "</table>";
-    } else {
-        echo "Failed to fetch data from FRED.";
-    }
+		if ($response) {
+			$data = json_decode($response, true);
+	
+			// display the data for each series
+			echo "Market Yield Data for $series_name:\n";
+			foreach ($data['observations'] as $observation) {
+				$date = $observation['date'];
+				$value = $observation['value'];
+				echo "Date: $date, Value: $value\n";
+			}
+			echo "\n";
+		} else {
+			echo "Failed to fetch data for $series_name\n";
+		}
+	}
     ?>
 </body>
 </html>
