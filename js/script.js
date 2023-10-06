@@ -7,6 +7,7 @@ document.addEventListener("DOMContentLoaded", function () {
 		console.log('D3.js is Not loaded in this project.');
 	}
 	//verify php data available
+	console.log(bondsData);
 	console.log(spxData);
 
 	// Define dimensions of the graph

@@ -49,6 +49,9 @@
 	$file_type = urlencode("json");
 	//$file_type = urlencode("xml");	//uncomment respective code for returned format
 
+
+	$bonds_reformatted = array();
+
 	// equivalent to `for series_id, series_name in series_ids.items():`
 	//  in Python, getting key and value pairs from iterable
 	foreach ($series_ids as $series_id => $series_name) {
@@ -77,8 +80,17 @@
 				$date = $observation['date'];
 				$value = $observation['value'];
 				echo "Date: $date, Value: $value\n";
+
+				// Create an object for each data point, add to $bonds_reformatted
+				$data_point = array(
+					"marketYield" => $value,
+					"maturityHorizon" => $series_name, // Assuming you want to use the series name as maturity horizon
+					"date" => $date
+				);
+
+				$bonds_reformatted[] = $data_point;
 			}
-			
+
 			/* xml respective code */
 			//$xml = simplexml_load_string($response);
 
@@ -116,6 +128,7 @@
 		}
 	}
 
+	$bondsDataJson = json_encode($bonds_reformatted);
 
 	/* fetch S&P500 data*/
 	$symbol = '^SPX';
@@ -203,6 +216,9 @@
     ?>
 	<script>
 		// Embed/pass formatted JSON data to script.js
+    	var bondsData = <?php echo $bondsDataJson; ?>;
+	</script>
+	<script>
 		var spxData = <?php echo $formatted_data_json; ?>;
 	</script>
 	<script src="js/script.js"></script>
