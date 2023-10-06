@@ -101,6 +101,7 @@ document.addEventListener("DOMContentLoaded", function () {
 	// 	}
 	// });
 
+	/* dragging features */
 	// Add drag behavior
 	var dragBehavior = d3.drag()
 		.on("start", dragStart)
@@ -109,6 +110,8 @@ document.addEventListener("DOMContentLoaded", function () {
 
 	// Apply drag behavior to the SVG
 	svg.call(dragBehavior);
+
+
 
 	// Variables to store drag state
 	var isDragging = false;
@@ -147,6 +150,34 @@ document.addEventListener("DOMContentLoaded", function () {
 			infoText.style("display", "none");
 		}
 	}
-	
 
+	/* snapshot features */
+	// Add "Snapshot" button
+	var snapshotButton = d3.select("body").append("button")
+	.text("Snapshot")
+	.on("click", toggleSnapshot);
+
+	var snapshotXPosition = null; // var to store position of snapshot bar
+
+	function toggleSnapshot() {
+	if (snapshotXPosition === null) {
+		// Draw a snapshot bar, pos fixed
+		snapshotXPosition = verticalBar.attr("x1");
+		verticalBar.clone() // Clone the vertical bar
+			.attr("stroke", "green") // Change the color for snapshot
+			.attr("class", "snapshot-bar") // Add a class to identify snapshot bars
+			.attr("x1", snapshotXPosition)
+			.attr("x2", snapshotXPosition);
+
+		snapshotButton.text("Reset");
+		} else {
+			// Remove the snapshot bar
+			svg.selectAll(".snapshot-bar").remove();
+			snapshotXPosition = null;
+			// toggle button text
+			snapshotButton.text("Snapshot"); 
+		}
+	}
+
+	
 });
