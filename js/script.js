@@ -8,7 +8,9 @@ document.addEventListener("DOMContentLoaded", function () {
 	}
 	//verify php data available
 	console.log(bondsData);
+	//bookedmarked version of same url will not be updated, no new logs
 	console.log(spxData);
+	//console.log(spxData[0]);
 
 	// Define dimensions of the graph
 	var width = 800;
@@ -20,7 +22,7 @@ document.addEventListener("DOMContentLoaded", function () {
 	.attr("width", width)
 	.attr("height", height);
 
-	// Set parse date function
+	// Set parse function that converts strings to Date objects
 	var parseDate = d3.timeParse("%Y-%m-%d");
 
 	// Set the ranges for x and y
@@ -33,9 +35,13 @@ document.addEventListener("DOMContentLoaded", function () {
 	.y(function (d) { return y(d.close); });
 
 	// Format the data
+	//console.log("\t test...")
+	//console.log(spxData)
+	//console.log(spxData[0])
 	spxData.forEach(function (d) {
-	d.date = parseDate(d.date);
-	d.close = +d.close;
+		//console.log(d.date)
+		d.date = parseDate(d.date);
+		d.close = +d.close;
 	});
 
 	// Scale the range of the data
@@ -61,7 +67,13 @@ document.addEventListener("DOMContentLoaded", function () {
 	.attr("d", line);
 
 	// Add interactive vertical bar
-	var initialXPosition = x(new Date("1999-01-01")); 
+	// weirdly when manually inputting the very first date here
+	//  x.invert() gets the pos/date for the day before
+	//var initialXPosition = x(new Date("1999-01-04")); 
+
+	//programmtically set the very first date, still "1999-01-04"
+	var minDate = d3.min(spxData, function(d) { return d.date; });
+	var initialXPosition = x(minDate);
 	var verticalBar = svg.append("line")
 	.attr("x1", initialXPosition)
 	.attr("x2", initialXPosition)
@@ -128,6 +140,10 @@ document.addEventListener("DOMContentLoaded", function () {
 			// Limit mouse position within x-axis range
 			var mouseX = Math.max(margin.left, Math.min(event.x, width - margin.right)); 
 			updateVerticalBar(mouseX);
+
+			// Update bonds graph with data for the current date/ bar pos
+			var dateValue = x.invert(mouseX);
+			updateYields(dateValue);
 		}
 	}
 
@@ -211,6 +227,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     currentDate = spxData[currentDateIndex].date;
                     currentX = x(currentDate);
                     updateVerticalBar(currentX);
+					updateYields(currentDate); // Update bonds graph
                 } else {
                     pauseAnimate();
                 }
@@ -226,4 +243,92 @@ document.addEventListener("DOMContentLoaded", function () {
 		//stop associated Js Interval timer
         clearInterval(animationInterval);
     }
+
+	/* dynamic bonds graph features */
+	// event handler for spx bar selection
+
+	// Function to update the vertical bar position and left graph
+	// function updateYields(newXPos) {
+	// 	// Update the current bar  &  position
+	// 	// verticalBar.attr("x1", newXPos).attr("x2", newXPos);
+	// 	// currentXPosition = newXPos;
+
+	// 	// Filter bondsData to get elements with the same date
+	// 	var dateValue = x.invert(newXPos)
+	// 	var filteredBondsData = bondsData.filter(function (d) {
+	// 		return d.date.getTime() === dateValue.getTime();
+	// 	});
+	
+	// 	console.log(filteredBondsData);
+	// }
+
+	// helper to periodically monitor changes in bar position
+	//  there's technically a delay, but very small in ms
+	// a delayless implementation can set bonds graph on inital bar pos
+	//  & update based on when bar is dragged or animated
+	// function monitorBarPos() {
+	// 	// Check the vertical bar's x1 attribute at regular intervals
+	// 	setInterval(function () {
+	// 		var newXPos = +verticalBar.attr("x1");
+
+	// 		// If the vertical bar position has changed, update the bonds graph
+	// 		if (newXPos !== currentXPosition) {
+	// 			updateYields(newXPos);
+	// 		}
+	// 	}, 100); // Adjust the interval as needed
+	// }
+
+	// // Start monitoring vertical bar position
+	// monitorBarPos();
+
+	// Initial filtering & bonds graph creation 
+	// since there is no data on 1/1/1999 for SPX,
+	//  the bar is moved to next avalible date 
+	//  making bar 1 day ahead of actual date's data
+	var initDateValue = x.invert(initialXPosition);
+	console.log(initialXPosition);
+	console.log(initDateValue);
+	updateYields(initDateValue);
+
+	// bonds graph update based on interactivity
+	//  Not time-based/(setInterval()) updates
+	function updateYields(dateValue) {
+		// Filter bondsData to get elements with the same date
+		console.log(dateValue)
+		console.log(typeof(dateValue))
+		var filteredBondsData = bondsData.filter(function (d) {
+			//ensures both dates are Date objects
+			bondDate = parseDate(d.date)
+			// convert both dates to milliseconds
+			//  but we only care that date 'YY-MM-DD' is the same
+			// Also, FRED/bond data is updated at midnight (secs component is always :00)
+			//  but SPX data is updated at random times with secs 
+			//  so the ms comparison will no be equal 
+			//return bondDate.getTime() == dateValue.getTime();
+
+			// just compare the year, month, day components of date objects
+			return (
+				bondDate.getFullYear() === dateValue.getFullYear() &&
+				bondDate.getMonth() === dateValue.getMonth() &&
+				bondDate.getDate() === dateValue.getDate()
+			);
+		});
+	
+		console.log(filteredBondsData);
+	}
+
+	// Helper to periodically monitor changes in bar position
+	// function monitorBarPos() {
+	// 	// Check the vertical bar's x1 attribute at regular intervals
+	// 	setInterval(function () {
+	// 		var newXPos = +verticalBar.attr("x1");
+	// 		console.log(newXPos)
+
+	// 		// If bar position has changed, update bonds graph
+	// 		updateYields(newXPos);
+	// 	}, 10000);
+	// }
+		
+	// monitorBarPos();
 });
+
