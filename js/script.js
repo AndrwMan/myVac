@@ -124,8 +124,6 @@ document.addEventListener("DOMContentLoaded", function () {
 	// Apply drag behavior to the SVG
 	svg.call(dragBehavior);
 
-
-
 	// Variables to store drag state
 	var isDragging = false;
 	//var mouseX = 0;
@@ -136,9 +134,10 @@ document.addEventListener("DOMContentLoaded", function () {
 
 	function dragging(event) {
 		if (isDragging) {
-			//mouseX = event.x;
 			// Limit mouse position within x-axis range
 			var mouseX = Math.max(margin.left, Math.min(event.x, width - margin.right)); 
+			//var marginLeftDate = x.invert(margin.left);
+			//console.log(marginLeftDate)
 			updateVerticalBar(mouseX);
 
 			// Update bonds graph with data for the current date/ bar pos
@@ -149,6 +148,17 @@ document.addEventListener("DOMContentLoaded", function () {
 
 	function dragEnd() {
 		isDragging = false;
+
+		// FIXME: its seems that vertical bar is off by 1 after drag
+		// ex: 1999-01-05 even when fully dragged left to 1999-01-04
+		var mouseX = +verticalBar.attr("x1");	// Get current position of bar
+		updateVerticalBar(mouseX);
+
+		// retrieve the matched bondsData a final time
+		// to sync with current bar pos/date
+		// var mouseX = +verticalBar.attr("x1");	// Get current position of bar
+		// var dateValue = x.invert(mouseX);
+		// updateYields(dateValue);
 	}
 
 	function updateVerticalBar(mouseX) {
@@ -233,6 +243,15 @@ document.addEventListener("DOMContentLoaded", function () {
                 }
             }, animationSpeed);
         } else {
+			//somehow animate always get same date updateVerticalBar() display 
+			// var currentX = +verticalBar.attr("x1");
+			// updateVerticalBar(currentX);
+			// console.log(currentX)
+
+			// var currentDateIndex = d3.bisector(function (d) { return d.date; }).left(spxData, x.invert(currentX));
+            // var currentDate = spxData[currentDateIndex].date;
+			// updateYields(currentDate)
+
             pauseAnimate();
         }
     }
@@ -246,40 +265,6 @@ document.addEventListener("DOMContentLoaded", function () {
 
 	/* dynamic bonds graph features */
 	// event handler for spx bar selection
-
-	// Function to update the vertical bar position and left graph
-	// function updateYields(newXPos) {
-	// 	// Update the current bar  &  position
-	// 	// verticalBar.attr("x1", newXPos).attr("x2", newXPos);
-	// 	// currentXPosition = newXPos;
-
-	// 	// Filter bondsData to get elements with the same date
-	// 	var dateValue = x.invert(newXPos)
-	// 	var filteredBondsData = bondsData.filter(function (d) {
-	// 		return d.date.getTime() === dateValue.getTime();
-	// 	});
-	
-	// 	console.log(filteredBondsData);
-	// }
-
-	// helper to periodically monitor changes in bar position
-	//  there's technically a delay, but very small in ms
-	// a delayless implementation can set bonds graph on inital bar pos
-	//  & update based on when bar is dragged or animated
-	// function monitorBarPos() {
-	// 	// Check the vertical bar's x1 attribute at regular intervals
-	// 	setInterval(function () {
-	// 		var newXPos = +verticalBar.attr("x1");
-
-	// 		// If the vertical bar position has changed, update the bonds graph
-	// 		if (newXPos !== currentXPosition) {
-	// 			updateYields(newXPos);
-	// 		}
-	// 	}, 100); // Adjust the interval as needed
-	// }
-
-	// // Start monitoring vertical bar position
-	// monitorBarPos();
 
 	// Initial filtering & bonds graph creation 
 	// since there is no data on 1/1/1999 for SPX,
@@ -316,19 +301,5 @@ document.addEventListener("DOMContentLoaded", function () {
 	
 		console.log(filteredBondsData);
 	}
-
-	// Helper to periodically monitor changes in bar position
-	// function monitorBarPos() {
-	// 	// Check the vertical bar's x1 attribute at regular intervals
-	// 	setInterval(function () {
-	// 		var newXPos = +verticalBar.attr("x1");
-	// 		console.log(newXPos)
-
-	// 		// If bar position has changed, update bonds graph
-	// 		updateYields(newXPos);
-	// 	}, 10000);
-	// }
-		
-	// monitorBarPos();
 });
 
