@@ -1,10 +1,15 @@
 <!DOCTYPE html>
 <html>
 <head>
+	<!-- Not using default port 80, using port 8080  -->
 	<!-- 
 		My files to be served is under a subdirectory (myVac)
 		instead of directly under htdocs, so when specify path 
 		for hosting later, should be careful 
+	-->
+	<!-- 
+		use `C:\Program Files (x86)\Apache24\bin>httpd -k restart`  
+		in cmd to restart server (mainly on config changes)
 	-->
     <title>Market Yield Data</title>
 </head>
@@ -33,6 +38,7 @@
 	$api_key = urlencode('fc29dfd642dbcd4d5c2d996a6e018b24'); //generated FRED apiKey
 	
 	$file_type = urlencode("json");
+	//$file_type = urlencode("xml");	//uncomment respective code for returned format
 
 	// equivalent to `for series_id, series_name in series_ids.items():`
 	//  in Python, getting key and value pairs from iterable
@@ -52,13 +58,61 @@
 				$value = $observation['value'];
 				echo "Date: $date, Value: $value\n";
 			}
-			echo "\n";
-		} else {
-			echo "Failed to fetch data for $series_name\n";
+			
+			/* xml respective code */
+			//$xml = simplexml_load_string($response);
+
+			// debug:
+			// FRED's docs specify that the response is 
+			// <observation realtime_start="2013-08-14" realtime_end="2013-08-14" date="1929-01-01" value="1065.9"/>
+			// but we can explicitly check for this w/ var_dump
+			// echo "<pre>";
+    		// var_dump($xml);
+    		// echo "</pre>";
+
+            // Display the data for each series
+            // echo "Market Yield Data for $series_name:\n";
+			// // for the SimpleXML object assess <observations> element
+			// //  for <observations> assess single <observations> as var
+			// older incorrect parsing of XML structure, no error handling
+            // foreach ($xml->observations->observation as $observation) {
+            //     $date = $observation->date;
+            //     $value = $observation->value;
+            //     echo "Date: $date, Value: $value\n";
+            // }
+			// echo "\n";
+
+			// if ($xml) {
+			// 	echo "<h2>Market Yield Data for $series_name:</h2>";
+			// 	echo "<ul>";
+			// 	// older incorrect parsing of XML structure
+			// 	// foreach ($xml->observations->observation as $observation) {
+			// 	// 	$date = $observation->date;
+			// 	// 	$value = $observation->value;
+			// 	// 	echo "<li>Date: $date, Value: $value</li>";
+			// 	// }
+			// 	// foreach ($xml->observation as $observation) {
+			// 	// 	$date = $observation->date;
+			// 	// 	$value = $observation->value;
+			
+			// 	// 	echo "<li>Date: $date, Value: $value</li>";
+			// 	// }
+			// 	foreach ($xml->observation as $observation) {
+			// 		// recall that attributes are different from child elements
+			// 		//  they are not separate tags but properties of the previous tag
+			// 		// TODO: get data every 20 days next
+			// 		$attributes = $observation->attributes();
+			// 		$date = (string)$attributes['date'];
+			// 		$value = (string)$attributes['value'];
+			
+			// 		echo "<li>Date: $date, Value: $value</li>";
+			// 	}
+			// 	echo "</ul>";
+			// } else {
+			// 		echo "Failed to fetch data for $series_name";
+			// }	
 		}
 	}
     ?>
 </body>
 </html>
-
-
