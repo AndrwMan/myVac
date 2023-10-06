@@ -179,5 +179,50 @@ document.addEventListener("DOMContentLoaded", function () {
 		}
 	}
 
-	
+	/* playback related features */
+
+	// Add "Animate" button
+    var animateButton = d3.select("body").append("button")
+        .text("Animate")
+        .on("click", toggleAnimate);
+
+    var isAnimating = false; // store animation state
+    var animationInterval; // Interval for the animation
+
+    function toggleAnimate() {
+        if (!isAnimating) {
+            isAnimating = true;
+            animateButton.text("Pause");
+
+            // Start animation
+            var currentX = +verticalBar.attr("x1");
+			//determine upper bound of x-axis pos based on data
+            var maxX = x(spxData[spxData.length - 1].date);
+            var animationSpeed = 100; 
+			//convert pixels to date value, use to update in animationInterval
+            var currentDateIndex = d3.bisector(function (d) { return d.date; }).left(spxData, x.invert(currentX));
+            var currentDate = spxData[currentDateIndex].date;
+			
+			// shift bar & update displayed date, closing values 
+            animationInterval = setInterval(function () {
+                if (currentX < maxX) {
+                    currentDateIndex++;
+                    currentDate = spxData[currentDateIndex].date;
+                    currentX = x(currentDate);
+                    updateVerticalBar(currentX);
+                } else {
+                    pauseAnimate();
+                }
+            }, animationSpeed);
+        } else {
+            pauseAnimate();
+        }
+    }
+
+    function pauseAnimate() {
+        isAnimating = false;
+        animateButton.text("Animate");
+		//stop associated Js Interval timer
+        clearInterval(animationInterval);
+    }
 });
