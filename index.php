@@ -124,14 +124,14 @@
     
     // Build the URL with appropriate parameters
     //$url = "{$base_url}?period1=" . strtotime($start_date) . "&period2=" . strtotime($end_date) . "&interval=1d";
-	//$url = "{$base_url}?period1={$start_date_tstamp}&period2={$end_date_tstamp}&interval=1d";
+	$url = "{$base_url}?period1={$start_date_tstamp}&period2={$end_date_tstamp}&interval=1d";
 
-    $ch = curl_init($test_url2); 							// Initialize cURL session 
+    $ch = curl_init($url); 							// Initialize cURL session 
 
 	// Set cURL options
 	// Set the path to the CA certificate bundle (downloaded cacert.pem)
 	//  worked for absolute path vs relative path (to project root)
-	//curl_setopt($ch, CURLOPT_CAINFO, 'C:/Program Files (x86)/Apache24/htdocs/myVac/cacert.pem');
+	curl_setopt($ch, CURLOPT_CAINFO, 'C:/Program Files (x86)/Apache24/htdocs/myVac/cacert.pem');
 	// Enable SSL certificate verification
 	curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
 	curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 2);
