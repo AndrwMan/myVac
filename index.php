@@ -11,7 +11,14 @@
 		use `C:\Program Files (x86)\Apache24\bin>httpd -k restart`  
 		in cmd to restart server (mainly on config changes)
 	-->
-    <title>Market Yield Data</title>
+    <title>Market Yield Data Versus Stock Market index</title>
+
+	<!-- load prebuilt d3.js from CDN -->
+	<!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.2.0/d3.min.js"></script> -->
+	
+	<!-- load locally built d3.js  -->
+	<!-- without the path issues like node, sucessfully included prebuilt d3.js -->
+	<script src="js/d3.min.js"></script>
 </head>
 <body>
     <h1>Market Yield Data</h1>
@@ -157,21 +164,48 @@
         // Extract and display the daily data
         $close_prices = $data['chart']['result'][0]['indicators']['quote'][0]['close'];
         $timestamps = $data['chart']['result'][0]['timestamp'];
+
+		//store {date: dateVal, close: closeVal}... reformat for d3
+		$formatted_data = array();
         
         echo "<h2>Daily Closing Prices for S&P 500 ($symbol)</h2>";
         echo "<table>";
         echo "<tr><th>Date</th><th>Close Price</th></tr>";
         
+		//convert unix timestamps back to formatted time
         foreach ($timestamps as $key => $timestamp) {
             $date = date('Y-m-d', $timestamp);
             $close_price = $close_prices[$key];
             echo "<tr><td>{$date}</td><td>{$close_price}</td></tr>";
+
+			// Create an object for each data point
+			$data_point = array(
+				"date" => $date,
+				"close" => $close_price
+			);
+	
+			// Add the data point to the formatted data array
+			$formatted_data[] = $data_point;
         }
-        
+
+		// Convert the formatted data array to JSON
+		$formatted_data_json = json_encode($formatted_data);
+		//debug: 
+		// Network > (refresh) > Response to see output
+		// due to the amount of output the result might be truncated from webpage
+		// use curl <url> to see full output
+		echo $formatted_data_json;
+	        
         echo "</table>";
     } else {
         echo "Failed to fetch data for S&P 500 ($symbol)";
     }
     ?>
+	<script>
+		// Embed/pass formatted JSON data to script.js
+		var spxData = <?php echo $formatted_data_json; ?>;
+	</script>
+	<script src="js/script.js"></script>
+	
 </body>
 </html>

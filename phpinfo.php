@@ -8,7 +8,6 @@
 	phpinfo(); 
 	error_reporting(E_ALL);
 
-
 	// Check if OpenSSL is enabled in PHP
 	if (extension_loaded('openssl')) {
         echo "OpenSSL is enabled in PHP.";
