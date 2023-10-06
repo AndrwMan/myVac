@@ -1,12 +1,12 @@
 document.addEventListener("DOMContentLoaded", function () {
+	//verify d3.js lib import
 	if (typeof d3 !== 'undefined') {
 		console.log('D3.js is already loaded in this project.');
 	} 
 	else {
-		console.log('D3.js is not loaded in this project.');
+		console.log('D3.js is Not loaded in this project.');
 	}
-
-	//d3.select("body").append("p").text("Hello, D3!");
+	//verify php data available
 	console.log(spxData);
 
 	// Define dimensions of the graph
@@ -60,39 +60,93 @@ document.addEventListener("DOMContentLoaded", function () {
 	.attr("d", line);
 
 	// Add interactive vertical bar
+	var initialXPosition = x(new Date("1999-01-01")); 
 	var verticalBar = svg.append("line")
-	.attr("x1", 0)
-	.attr("x2", 0)
+	.attr("x1", initialXPosition)
+	.attr("x2", initialXPosition)
 	.attr("y1", margin.top)
 	.attr("y2", height - margin.bottom)
 	.attr("stroke", "red")
 	.attr("stroke-width", 2)
-	.style("display", "none"); // Initially hidden
+	//.style("display", "none"); // Initially hidden
+
+	// Add text elements to display date and closing value
+	var infoText = svg.append("text")
+		.attr("x", margin.left + 10)
+		.attr("y", margin.top + 10)
+		.attr("class", "info-text");
 
 	//Add mousemove event to show/hide vertical bar and update data
 	console.log(svg.node())
 	// do not use d3.mouse which was removed in d3 v6 onwards
 	// see: https://observablehq.com/@d3/d3v6-migration-guide#pointer
-	svg.on("mousemove", (event) => {
-		var pointer = d3.pointer(event);
-		var mouseX = pointer[0];			// get x-coordinate
-		var dateValue = x.invert(mouseX);	// converts pixel position to date value using x-scale
-		// find the closest data value in spxData array,
-		//  recall that user is free to point anywhere 
-		//  but not all dates are trading days and 
-		//  therefore may not have observed vals
+	// svg.on("mousemove", (event) => {
+	// 	var pointer = d3.pointer(event);
+	// 	var mouseX = pointer[0];			// get x-coordinate
+	// 	var dateValue = x.invert(mouseX);	// converts pixel position to date value using x-scale
+	// 	// find the closest data value in spxData array,
+	// 	//  recall that user is free to point anywhere 
+	// 	//  but not all dates are trading days and 
+	// 	//  therefore may not have observed vals
+	// 	var bisectDate = d3.bisector(function (d) { return d.date; }).left;
+	// 	var index = bisectDate(spxData, dateValue, 1);
+	// 	var dataPoint = spxData[index];
+	
+	// 	if (dataPoint) {
+	// 		// change the properties of the vertical bar on interaction 
+	// 		//  shifts & adds visibility
+	// 		verticalBar.attr("x1", mouseX).attr("x2", mouseX).style("display", "block");
+	// 	} else {
+	// 		verticalBar.style("display", "none");
+	// 	}
+	// });
+
+	// Add drag behavior
+	var dragBehavior = d3.drag()
+		.on("start", dragStart)
+		.on("drag", dragging)
+		.on("end", dragEnd);
+
+	// Apply drag behavior to the SVG
+	svg.call(dragBehavior);
+
+	// Variables to store drag state
+	var isDragging = false;
+	//var mouseX = 0;
+
+	function dragStart() {
+		isDragging = true;
+	}
+
+	function dragging(event) {
+		if (isDragging) {
+			//mouseX = event.x;
+			// Limit mouse position within x-axis range
+			var mouseX = Math.max(margin.left, Math.min(event.x, width - margin.right)); 
+			updateVerticalBar(mouseX);
+		}
+	}
+
+	function dragEnd() {
+		isDragging = false;
+	}
+
+	function updateVerticalBar(mouseX) {
+		var dateValue = x.invert(mouseX);
 		var bisectDate = d3.bisector(function (d) { return d.date; }).left;
 		var index = bisectDate(spxData, dateValue, 1);
 		var dataPoint = spxData[index];
-	
+
 		if (dataPoint) {
-			// change the properties of the vertical bar on interaction 
-			//  shifts & adds visibility
 			verticalBar.attr("x1", mouseX).attr("x2", mouseX).style("display", "block");
+			// display dynamic date and close values, rounded to nearest cents 
+			infoText.text("Date: " + d3.timeFormat("%Y-%m-%d")(dataPoint.date) + ", Close: " + dataPoint.close.toFixed(2))
+				.style("display", "block");
 		} else {
 			verticalBar.style("display", "none");
+			infoText.style("display", "none");
 		}
-	});
+	}
 	
 
 });
