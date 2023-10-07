@@ -275,13 +275,17 @@ document.addEventListener("DOMContentLoaded", function () {
 	console.log(initDateValue);
 	updateYields(initDateValue);
 
+
 	// bonds graph update based on interactivity
 	//  Not time-based/(setInterval()) updates
+	// global, inscope for bonds graph
+	var filteredBondsData;
 	function updateYields(dateValue) {
 		// Filter bondsData to get elements with the same date
 		console.log(dateValue)
 		console.log(typeof(dateValue))
-		var filteredBondsData = bondsData.filter(function (d) {
+		filteredBondsData = bondsData.filter(function (d) {
+		//var filteredBondsData = bondsData.filter(function (d) {
 			//ensures both dates are Date objects
 			bondDate = parseDate(d.date)
 			// convert both dates to milliseconds
@@ -301,5 +305,151 @@ document.addEventListener("DOMContentLoaded", function () {
 	
 		console.log(filteredBondsData);
 	}
+
+
+
+	/* market yield curve graph creation */
+
+	var svg_bonds = d3.select("body").append("svg")
+        .attr("width", width)
+        .attr("height", height);
+
+	//Extract unique maturity horizons for x-axis values
+	//var maturityHorizons = [...new Set(bondsData.map(function (d) { return d.maturityHorizon; }))];
+	var maturityHorizons = [...new Set(bondsData.map(function (d) {
+		var parsedDuration = d.maturityHorizon.match(/\d+-Year|\d+-Month/);
+		return parsedDuration ? parsedDuration[0] : "";
+	}))];
+
+	var uniqueMaturityHorizons = [...new Set(bondsData.map(function (d) {
+		return d.maturityHorizon;
+	}))];
+
+	// ...Since we want our tick labels to be
+	// different from data's "maturityHorizon" property 
+	// and match a value in the domain(<array>),
+	// Must create a mapping between tick labels & original "maturityHorizon" values
+	var ticks2dataMHMap = {};
+	uniqueMaturityHorizons.forEach(function (label, index) {
+		// takes each value of "maturityHorizon" property in 
+		//  and assign it the respective value in maturityHorizons 
+		ticks2dataMHMap[label] = maturityHorizons[index];
+	});
+	console.log(ticks2dataMHMap)
+
+	// Set up scales for the yield curve
+	var xYield = d3.scaleBand()
+		//.domain() determines both the x-axis ticks
+		// and assigns x-values to labels...
+		.domain(maturityHorizons)
+		.range([margin.left, width - margin.right])
+		.padding(0.1);
+
+	var yYield = d3.scaleLinear()
+		//.domain([0, d3.max(filteredBondsData, function (d) { return +d.marketYield; })])
+		// filteredBondsData's range changes, use bondsData to get fixed range across all bonds 
+		.domain([0, d3.max(bondsData, function (d) { return +d.marketYield; })])
+		.nice()
+		.range([height - margin.bottom, margin.top]);
+
+	// Define the line generator for the yield curve
+	var lineYield = d3.line()
+		.x(function (d) { 
+			console.log(d.maturityHorizon)
+			console.log(xYield(d.maturityHorizon))
+			var mappedValue = ticks2dataMHMap[d.maturityHorizon];
+			return xYield(mappedValue) + xYield.bandwidth() / 2; 
+		})
+		.y(function (d) { return yYield(+d.marketYield); });
+
+	// Filter bondsData to get yields for each maturity horizon
+	// loop thru each reformatted horizon string in maturityHorizons  
+	// var yieldCurveData = maturityHorizons.map(function (horizon) {
+	// 	return {
+	// 		maturity: horizon,
+	// 		// the filter fails here, `horizon` hs been reformatted so it wont
+	// 		//  match d.maturityHorizon
+	// 		yield: d3.mean(bondsData.filter(function (d) { return d.maturityHorizon === horizon; }), function (d) { return +d.marketYield; })
+	// 	};
+	// });
+
+	// Extract unique maturity durations and their proportional intervals for x-axis values
+	// var maturityHorizons = [
+	// 	{ duration: "3-Month", interval: 1 },
+	// 	{ duration: "2-Year", interval: 8 },
+	// 	{ duration: "5-Year", interval: 4 },
+	// 	{ duration: "10-Year", interval: 2 },
+	// 	{ duration: "20-Year", interval: 1 },
+	// 	{ duration: "30-Year", interval: 2 }
+	// ];
+
+	// // Calculate the x-axis positions for ticks based on proportional intervals
+	// var tickValues = [];	
+	// var xPositions = [];
+	// var currentPosition = margin.left;
+	// maturityHorizons.forEach(function (horizon) {
+	// 	xPositions.push(currentPosition);
+	// 	currentPosition += (width - margin.left - margin.right) / horizon.interval;
+	// 	tickValues.push(currentPosition - (width - margin.left - margin.right) / horizon.interval / 2); // Calculate tick values
+	// });
+
+	// // Set up scales for the yield curve
+	// var xYield = d3.scaleLinear()
+	// 	.domain([0, maturityHorizons.length - 1])
+	// 	.range(xPositions);
+
+	// var yYield = d3.scaleLinear()
+	// 	.domain([0, d3.max(bondsData, function (d) { return +d.marketYield; })])
+	// 	.nice()
+	// 	.range([height - margin.bottom, margin.top]);
+
+	// // Define the line generator for the yield curve
+	// var lineYield = d3.line()
+	// 	.x(function (d, i) { return xYield(i); })
+	// 	.y(function (d) { return yYield(+d.marketYield); });
+
+	// // Filter bondsData to get yields for each maturity horizon
+	// var yieldCurveData = maturityHorizons.map(function (horizon) {
+	// 	return {
+	// 		maturity: horizon.duration,
+	// 		yield: d3.mean(bondsData.filter(function (d) { return d.maturityHorizon.includes(horizon.duration); }), function (d) { return +d.marketYield; })
+	// 	};
+	// });
+
+	// Add the x-axis for bond maturities
+	// var xAxisYield = d3.axisBottom(xYield)
+    // 	.tickValues(xPositions)
+	var xAxisYield = d3.axisBottom(xYield);
+
+	// Add the x-axis for bond maturities with custom tick values
+	// var xAxisYield = d3.axisBottom(xYield)
+	// .tickValues(tickValues) // Set custom tick values
+	// .tickFormat(function (d, i) { return maturityHorizons[i].duration; }); // Set tick labels 
+
+	svg_bonds.append("g")
+		.attr("class", "x-axis")
+		.attr("transform", "translate(0," + (height - margin.bottom) + ")")
+		.call(xAxisYield);
+
+	// Add the y-axis for yields
+	svg_bonds.append("g")
+		.attr("class", "y-axis")
+		.attr("transform", "translate(" + margin.left + ",0)")
+		.call(d3.axisLeft(yYield));
+
+
+	console.log(filteredBondsData)	
+	// Add the yield curve line
+	svg_bonds.append("path")
+		// bind the data to path element
+		//  data point in yieldCurveData corresponds 
+		//  to a segment/point in the path element's shape. 
+		.datum(filteredBondsData)
+		//.datum(yieldCurveData)
+		.attr("fill", "none")
+		.attr("stroke", "green") // You can choose your desired color
+		.attr("stroke-width", 2)
+		.attr("d", lineYield);
+	
 });
 
