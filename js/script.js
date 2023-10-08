@@ -469,7 +469,7 @@ document.addEventListener("DOMContentLoaded", async function () {
 	// 	.attr("stroke", "green") // You can choose your desired color
 	// 	.attr("stroke-width", 2)
 	// 	.attr("d", lineYield);
-
+	
 	updateYieldCurve();
 	
 	/* dynamic yield curve to interative bar */
@@ -498,43 +498,61 @@ document.addEventListener("DOMContentLoaded", async function () {
 	// 	//Remove any extra path elements that are no longer needed
 	// 	updatedPath.exit().remove();
 	// }
-		
-	//async function updateYieldCurve() {
-	function updateYieldCurve() {
-		svg_bonds.append("path")
-		// bind the data to path element
-		//  data point in yieldCurveData corresponds 
-		//  to a segment/point in the path element's shape. 
-		.datum(filteredBondsData)
-		//.datum(yieldCurveData)
-		.attr("fill", "none")
-		.attr("stroke", "green") // You can choose your desired color
-		.attr("stroke-width", 2)
-		.attr("d", lineYield);
 
-		// Select the path element and bind the updated data to it
-		var updatedPath = svg_bonds.select("path")
-		  .datum(filteredBondsData);
+	
+
+	//async function updateYieldCurve() {
+	// function updateYieldCurve() {
+	// 	svg_bonds.append("path")
+	// 	.datum(filteredBondsData)
+	// 	//svg_bonds.append("path")
+	// 	// bind the data to path element
+	// 	//  data point in yieldCurveData corresponds 
+	// 	//  to a segment/point in the path element's shape. 
+	// 	//.datum(filteredBondsData)
+	// 	//.datum(yieldCurveData)
+	// 	.attr("fill", "none")
+	// 	.attr("stroke", "green") // You can choose your desired color
+	// 	.attr("stroke-width", 2)
+	// 	.attr("d", lineYield);
+
+	// 	// Select the path element and bind the updated data to it
+	// 	var updatedPath = svg_bonds.select("path")
+	// 	  .datum(filteredBondsData);
 	  
-		// enter-exit approach works for sure when there's enough delay
-		// Use the enter-update-exit pattern
-		updatedPath.enter()
-		  .append("path")
-		  .merge(updatedPath)
-		  .attr("fill", "none")
-		  .attr("stroke", "green")
-		  .attr("stroke-width", 2)
-		  .transition()
-		  .duration(100)
-		  .attr("d", d => lineYield(d))
-		  .on("end", () => {
-			// This code will be executed when the transition ends
-			// Remove any extra path elements that are no longer needed
-			updatedPath.exit().remove();
-		  });
+	// 	// enter-exit approach works for sure when there's enough delay
+	// 	// Use the enter-update-exit pattern
+	// 	updatedPath.enter()
+	// 	  //.append("path")
+	// 	  //.merge(updatedPath)
+	// 	//   .attr("fill", "none")
+	// 	//   .attr("stroke", "green")
+	// 	//   .attr("stroke-width", 2)
+	// 	  .transition()
+	// 	  .duration(100)
+	// 	  .attr("d", d => lineYield(d))
+	// 	  .on("end", () => {
+	// 		// This code will be executed when the transition ends
+	// 		// Remove any extra path elements that are no longer needed
+	// 		updatedPath.exit().remove();
+	// 	  });
 	  
-		// No need for the additional Promise and await here
-	  }
+	// 	// No need for the additional Promise and await here
+	//   }
+
+	  function updateYieldCurve() {
+		// Remove the old path elements
+		svg_bonds.selectAll("path").remove();
+	
+		// Append the new path element
+		svg_bonds
+			.append("path")
+			.datum(filteredBondsData)
+			.attr("fill", "none")
+			.attr("stroke", "green")
+			.attr("stroke-width", 2)
+			.attr("d", lineYield);
+	}
 
 });
 
