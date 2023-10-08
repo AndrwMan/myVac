@@ -133,6 +133,7 @@ document.addEventListener("DOMContentLoaded", function () {
 	}
 
 	function dragging(event) {
+	//async function dragging(event) {
 		if (isDragging) {
 			// Limit mouse position within x-axis range
 			var mouseX = Math.max(margin.left, Math.min(event.x, width - margin.right)); 
@@ -142,7 +143,10 @@ document.addEventListener("DOMContentLoaded", function () {
 
 			// Update bonds graph with data for the current date/ bar pos
 			var dateValue = x.invert(mouseX);
+			//await updateYields(dateValue);
 			updateYields(dateValue);
+
+			updateYieldCurve();
 		}
 	}
 
@@ -238,6 +242,8 @@ document.addEventListener("DOMContentLoaded", function () {
                     currentX = x(currentDate);
                     updateVerticalBar(currentX);
 					updateYields(currentDate); // Update bonds graph
+
+					updateYieldCurve();
                 } else {
                     pauseAnimate();
                 }
@@ -266,6 +272,11 @@ document.addEventListener("DOMContentLoaded", function () {
 	/* dynamic bonds graph features */
 	// event handler for spx bar selection
 
+	// market yield curve graph/ container creation
+	var svg_bonds = d3.select("body").append("svg")
+        .attr("width", width)
+        .attr("height", height);
+
 	// Initial filtering & bonds graph creation 
 	// since there is no data on 1/1/1999 for SPX,
 	//  the bar is moved to next avalible date 
@@ -275,44 +286,45 @@ document.addEventListener("DOMContentLoaded", function () {
 	console.log(initDateValue);
 	updateYields(initDateValue);
 
-
 	// bonds graph update based on interactivity
 	//  Not time-based/(setInterval()) updates
 	// global, inscope for bonds graph
 	var filteredBondsData;
 	function updateYields(dateValue) {
-		// Filter bondsData to get elements with the same date
-		console.log(dateValue)
-		console.log(typeof(dateValue))
-		filteredBondsData = bondsData.filter(function (d) {
-		//var filteredBondsData = bondsData.filter(function (d) {
-			//ensures both dates are Date objects
-			bondDate = parseDate(d.date)
-			// convert both dates to milliseconds
-			//  but we only care that date 'YY-MM-DD' is the same
-			// Also, FRED/bond data is updated at midnight (secs component is always :00)
-			//  but SPX data is updated at random times with secs 
-			//  so the ms comparison will no be equal 
-			//return bondDate.getTime() == dateValue.getTime();
+			// Filter bondsData to get elements with the same date
+			console.log(dateValue)
+			console.log(typeof(dateValue))
+			// even though the anon func is callback
+			//  bbut filter may still need time to complete filter
+			filteredBondsData = bondsData.filter(function (d) {
+			//var filteredBondsData = bondsData.filter(function (d) {
+				//ensures both dates are Date objects
+				bondDate = parseDate(d.date)
+				// convert both dates to milliseconds
+				//  but we only care that date 'YY-MM-DD' is the same
+				// Also, FRED/bond data is updated at midnight (secs component is always :00)
+				//  but SPX data is updated at random times with secs 
+				//  so the ms comparison will no be equal 
+				//return bondDate.getTime() == dateValue.getTime();
 
-			// just compare the year, month, day components of date objects
-			return (
-				bondDate.getFullYear() === dateValue.getFullYear() &&
-				bondDate.getMonth() === dateValue.getMonth() &&
-				bondDate.getDate() === dateValue.getDate()
-			);
-		});
-	
+				// just compare the year, month, day components of date objects
+				return (
+					bondDate.getFullYear() === dateValue.getFullYear() &&
+					bondDate.getMonth() === dateValue.getMonth() &&
+					bondDate.getDate() === dateValue.getDate()
+				);
+			});
 		console.log(filteredBondsData);
+		//updateYieldCurve();
 	}
 
 
 
 	/* market yield curve graph creation */
 
-	var svg_bonds = d3.select("body").append("svg")
-        .attr("width", width)
-        .attr("height", height);
+	// var svg_bonds = d3.select("body").append("svg")
+    //     .attr("width", width)
+    //     .attr("height", height);
 
 	//Extract unique maturity horizons for x-axis values
 	//var maturityHorizons = [...new Set(bondsData.map(function (d) { return d.maturityHorizon; }))];
@@ -343,24 +355,56 @@ document.addEventListener("DOMContentLoaded", function () {
 		// and assigns x-values to labels...
 		.domain(maturityHorizons)
 		.range([margin.left, width - margin.right])
-		.padding(0.1);
+		//.padding(0.1);
+
+	//constant x-values for each category
+	var xValues = maturityHorizons.map(function(category) {
+		return xYield(category);
+	});
+	console.log(xValues);
+
+	var numericMarketYields = bondsData
+	.filter(function (d) {
+		console.log("\t numericMarketYields")
+		return !isNaN(+d.marketYield) && d.marketYield !== ".";
+	})
+	.map(function (d) {
+		return +d.marketYield;
+	});
 
 	var yYield = d3.scaleLinear()
-		//.domain([0, d3.max(filteredBondsData, function (d) { return +d.marketYield; })])
-		// filteredBondsData's range changes, use bondsData to get fixed range across all bonds 
-		.domain([0, d3.max(bondsData, function (d) { return +d.marketYield; })])
-		.nice()
-		.range([height - margin.bottom, margin.top]);
+	.domain([0, d3.max(numericMarketYields)]) // Use filtered and numeric data for the domain
+	.nice()
+	.range([height - margin.bottom, margin.top]);
+
+	//debug
+	var yRange = yYield.range();
+	console.log("yYield range:", yRange);
 
 	// Define the line generator for the yield curve
 	var lineYield = d3.line()
 		.x(function (d) { 
-			console.log(d.maturityHorizon)
-			console.log(xYield(d.maturityHorizon))
+			// console.log(d.maturityHorizon)
+			// console.log(ticks2dataMHMap[d.maturityHorizon])
+			// console.log(xYield(ticks2dataMHMap[d.maturityHorizon]))
+			console.log(d)
 			var mappedValue = ticks2dataMHMap[d.maturityHorizon];
-			return xYield(mappedValue) + xYield.bandwidth() / 2; 
+			// console.log("Mapped Value:", mappedValue);
+			// console.log("Domain:", xYield.domain());
+			// console.log("Domain:", maturityHorizons);
+
+			console.log(filteredBondsData)
+			console.log(xValues);
+			console.log(xYield(mappedValue))
+			console.log(xYield.bandwidth() / 2)
+			console.log(xYield(mappedValue) + xYield.bandwidth() / 2)
+			// +: shifts the x-value over , // xYield.bandwidth(): gets the width of a category/band, // 2: divide the interval len by 2
+			return xYield(mappedValue) + xYield.bandwidth() / 2;
 		})
-		.y(function (d) { return yYield(+d.marketYield); });
+		.y(function (d) { 
+			console.log( yYield(+d.marketYield) )
+			return yYield(+d.marketYield); 
+		});
 
 	// Filter bondsData to get yields for each maturity horizon
 	// loop thru each reformatted horizon string in maturityHorizons  
@@ -450,6 +494,49 @@ document.addEventListener("DOMContentLoaded", function () {
 		.attr("stroke", "green") // You can choose your desired color
 		.attr("stroke-width", 2)
 		.attr("d", lineYield);
+
+	//updateYieldCurve();
 	
+	/* dynamic yield curve to interative bar */
+	// function updateYieldCurve() {
+	// 	// Select the path element and bind the updated data to it
+	// 	console.log(svg_bonds.select("path"))
+	// 	console.log(filteredBondsData)
+	// 	console.log("\t ENTERED")
+
+	// 	var updatedPath = svg_bonds.select("path")
+	// 		.datum(filteredBondsData)
+		
+	// 	// Transition the path element to the new data
+	// 	updatedPath.transition()
+	// 	 	.duration(100)
+	// 		.attr("d", d => lineYield(d));
+	// }
+
+	function updateYieldCurve() {
+		// Select the path element and bind the updated data to it
+		var updatedPath = svg_bonds.select("path")
+			.datum(filteredBondsData);
+
+		// enter-exit approach works for suer when there's enough delay
+		// Use the enter-update-exit pattern
+		updatedPath.enter()
+			.append("path")
+			.merge(updatedPath)
+			.attr("fill", "none")
+			.attr("stroke", "green")
+			.attr("stroke-width", 2)
+			.transition()
+			.duration(100)
+			.attr("d", d => lineYield(d));
+
+		// updatedPath.transition()
+        // .duration(100)
+        // .attr("d", d => lineYield(d));
+
+		//Remove any extra path elements that are no longer needed
+		updatedPath.exit().remove();
+	}
+
 });
 

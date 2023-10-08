@@ -75,11 +75,11 @@
 			// echo "</pre>";
 				
 			// display the data for each series
-			echo "Market Yield Data for $series_name:<br>";
+			//echo "Market Yield Data for $series_name:<br>";
 			foreach ($data['observations'] as $observation) {
 				$date = $observation['date'];
 				$value = $observation['value'];
-				echo "Date: $date, Value: $value\n";
+				//echo "Date: $date, Value: $value\n";
 
 				// Create an object for each data point, add to $bonds_reformatted
 				$data_point = array(
@@ -161,17 +161,17 @@
     $response = curl_exec($ch);						// Execute cURL session/fetch data
 
 	//debug: cURL response
-	echo "API Response:<pre>" . htmlspecialchars($response) . "</pre>";
+	//echo "API Response:<pre>" . htmlspecialchars($response) . "</pre>";
 	if(curl_errno($ch)){
-		echo 'Curl error: ' . curl_error($ch);
+		//echo 'Curl error: ' . curl_error($ch);
 	}
 
     curl_close($ch);		// Close cURL session
 
     $data = json_decode($response, true);	
-	echo "<pre>"; 
-	print_r($data);
-	echo "</pre>";
+	// echo "<pre>"; 
+	// print_r($data);
+	// echo "</pre>";
     // Check if data was successfully fetched
     if ($data && isset($data['chart']['result'][0]['indicators']['quote'][0]['close'])) {
         // Extract and display the daily data
@@ -181,15 +181,15 @@
 		//store {date: dateVal, close: closeVal}... reformat for d3
 		$formatted_data = array();
         
-        echo "<h2>Daily Closing Prices for S&P 500 ($symbol)</h2>";
-        echo "<table>";
-        echo "<tr><th>Date</th><th>Close Price</th></tr>";
+        //echo "<h2>Daily Closing Prices for S&P 500 ($symbol)</h2>";
+        //echo "<table>";
+        //echo "<tr><th>Date</th><th>Close Price</th></tr>";
         
 		//convert unix timestamps back to formatted time
         foreach ($timestamps as $key => $timestamp) {
             $date = date('Y-m-d', $timestamp);
             $close_price = $close_prices[$key];
-            echo "<tr><td>{$date}</td><td>{$close_price}</td></tr>";
+            //echo "<tr><td>{$date}</td><td>{$close_price}</td></tr>";
 
 			// Create an object for each data point
 			$data_point = array(
@@ -207,9 +207,9 @@
 		// Network > (refresh) > Response to see output
 		// due to the amount of output the result might be truncated from webpage
 		// use curl <url> to see full output
-		echo $formatted_data_json;
+		//echo $formatted_data_json;
 	        
-        echo "</table>";
+        //echo "</table>";
     } else {
         echo "Failed to fetch data for S&P 500 ($symbol)";
     }
