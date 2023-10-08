@@ -1,4 +1,4 @@
-document.addEventListener("DOMContentLoaded", function () {
+document.addEventListener("DOMContentLoaded", async function () {
 	//verify d3.js lib import
 	if (typeof d3 !== 'undefined') {
 		console.log('D3.js is already loaded in this project.');
@@ -10,6 +10,11 @@ document.addEventListener("DOMContentLoaded", function () {
 	console.log(bondsData);
 	//bookedmarked version of same url will not be updated, no new logs
 	console.log(spxData);
+	
+	if (!spxData || !bondsData) {
+		// Either SPX or bond data is missing, throw an error
+		throw new Error("SPX or bond data is missing. Cannot draw initial graph.");
+	  }
 	//console.log(spxData[0]);
 
 	// Define dimensions of the graph
@@ -35,9 +40,6 @@ document.addEventListener("DOMContentLoaded", function () {
 	.y(function (d) { return y(d.close); });
 
 	// Format the data
-	//console.log("\t test...")
-	//console.log(spxData)
-	//console.log(spxData[0])
 	spxData.forEach(function (d) {
 		//console.log(d.date)
 		d.date = parseDate(d.date);
@@ -104,15 +106,6 @@ document.addEventListener("DOMContentLoaded", function () {
 	// 	var bisectDate = d3.bisector(function (d) { return d.date; }).left;
 	// 	var index = bisectDate(spxData, dateValue, 1);
 	// 	var dataPoint = spxData[index];
-	
-	// 	if (dataPoint) {
-	// 		// change the properties of the vertical bar on interaction 
-	// 		//  shifts & adds visibility
-	// 		verticalBar.attr("x1", mouseX).attr("x2", mouseX).style("display", "block");
-	// 	} else {
-	// 		verticalBar.style("display", "none");
-	// 	}
-	// });
 
 	/* dragging features */
 	// Add drag behavior
@@ -132,7 +125,7 @@ document.addEventListener("DOMContentLoaded", function () {
 		isDragging = true;
 	}
 
-	function dragging(event) {
+	async function dragging(event) {
 	//async function dragging(event) {
 		if (isDragging) {
 			// Limit mouse position within x-axis range
@@ -146,6 +139,7 @@ document.addEventListener("DOMContentLoaded", function () {
 			//await updateYields(dateValue);
 			updateYields(dateValue);
 
+			//await updateYieldCurve();
 			updateYieldCurve();
 		}
 	}
@@ -318,8 +312,6 @@ document.addEventListener("DOMContentLoaded", function () {
 		//updateYieldCurve();
 	}
 
-
-
 	/* market yield curve graph creation */
 
 	// var svg_bonds = d3.select("body").append("svg")
@@ -363,19 +355,55 @@ document.addEventListener("DOMContentLoaded", function () {
 	});
 	console.log(xValues);
 
-	var numericMarketYields = bondsData
-	.filter(function (d) {
-		console.log("\t numericMarketYields")
-		return !isNaN(+d.marketYield) && d.marketYield !== ".";
-	})
-	.map(function (d) {
-		return +d.marketYield;
-	});
+	//original code
+	// var numericMarketYields = bondsData
+	// .filter(function (d) {
+	// 	console.log("\t numericMarketYields")
+	// 	return !isNaN(+d.marketYield) && d.marketYield !== ".";
+	// })
+	// .map(function (d) {
+	// 	return +d.marketYield;
+	// });
 
+	// var yYield = d3.scaleLinear()
+	// .domain([0, d3.max(numericMarketYields)]) // Use filtered and numeric data for the domain
+	// .nice()
+	// .range([height - margin.bottom, margin.top]);
+
+
+	//test1
+	var numericMarketYields; // Declare numericMarketYields in a higher scope
+	//var yYield; // Declare yYield in the same higher scope
+
+	async function processDataAndSetupScale() {
+		try {
+			numericMarketYields = await new Promise((resolve) => {
+			var result = bondsData
+				.filter(function (d) {
+				console.log("\t numericMarketYields");
+				return !isNaN(+d.marketYield) && d.marketYield !== ".";
+				})
+				.map(function (d) {
+				return +d.marketYield;
+				});
+			resolve(result);
+			});
+
+			// Continue with other code that depends on numericMarketYields
+		} catch (error) {
+			// Handle errors here
+			console.error(error);
+		}
+	}
+	await processDataAndSetupScale()
+
+	//test1
+	// Set up the yYield scale using numericMarketYields
 	var yYield = d3.scaleLinear()
-	.domain([0, d3.max(numericMarketYields)]) // Use filtered and numeric data for the domain
-	.nice()
-	.range([height - margin.bottom, margin.top]);
+		.domain([0, d3.max(numericMarketYields)]) // Use filtered and numeric data for the domain
+		.nice()
+		.range([height - margin.bottom, margin.top]);
+	
 
 	//debug
 	var yRange = yYield.range();
@@ -401,64 +429,11 @@ document.addEventListener("DOMContentLoaded", function () {
 			// +: shifts the x-value over , // xYield.bandwidth(): gets the width of a category/band, // 2: divide the interval len by 2
 			return xYield(mappedValue) + xYield.bandwidth() / 2;
 		})
-		.y(function (d) { 
+		.y(
+			function (d) { 
 			console.log( yYield(+d.marketYield) )
 			return yYield(+d.marketYield); 
 		});
-
-	// Filter bondsData to get yields for each maturity horizon
-	// loop thru each reformatted horizon string in maturityHorizons  
-	// var yieldCurveData = maturityHorizons.map(function (horizon) {
-	// 	return {
-	// 		maturity: horizon,
-	// 		// the filter fails here, `horizon` hs been reformatted so it wont
-	// 		//  match d.maturityHorizon
-	// 		yield: d3.mean(bondsData.filter(function (d) { return d.maturityHorizon === horizon; }), function (d) { return +d.marketYield; })
-	// 	};
-	// });
-
-	// Extract unique maturity durations and their proportional intervals for x-axis values
-	// var maturityHorizons = [
-	// 	{ duration: "3-Month", interval: 1 },
-	// 	{ duration: "2-Year", interval: 8 },
-	// 	{ duration: "5-Year", interval: 4 },
-	// 	{ duration: "10-Year", interval: 2 },
-	// 	{ duration: "20-Year", interval: 1 },
-	// 	{ duration: "30-Year", interval: 2 }
-	// ];
-
-	// // Calculate the x-axis positions for ticks based on proportional intervals
-	// var tickValues = [];	
-	// var xPositions = [];
-	// var currentPosition = margin.left;
-	// maturityHorizons.forEach(function (horizon) {
-	// 	xPositions.push(currentPosition);
-	// 	currentPosition += (width - margin.left - margin.right) / horizon.interval;
-	// 	tickValues.push(currentPosition - (width - margin.left - margin.right) / horizon.interval / 2); // Calculate tick values
-	// });
-
-	// // Set up scales for the yield curve
-	// var xYield = d3.scaleLinear()
-	// 	.domain([0, maturityHorizons.length - 1])
-	// 	.range(xPositions);
-
-	// var yYield = d3.scaleLinear()
-	// 	.domain([0, d3.max(bondsData, function (d) { return +d.marketYield; })])
-	// 	.nice()
-	// 	.range([height - margin.bottom, margin.top]);
-
-	// // Define the line generator for the yield curve
-	// var lineYield = d3.line()
-	// 	.x(function (d, i) { return xYield(i); })
-	// 	.y(function (d) { return yYield(+d.marketYield); });
-
-	// // Filter bondsData to get yields for each maturity horizon
-	// var yieldCurveData = maturityHorizons.map(function (horizon) {
-	// 	return {
-	// 		maturity: horizon.duration,
-	// 		yield: d3.mean(bondsData.filter(function (d) { return d.maturityHorizon.includes(horizon.duration); }), function (d) { return +d.marketYield; })
-	// 	};
-	// });
 
 	// Add the x-axis for bond maturities
 	// var xAxisYield = d3.axisBottom(xYield)
@@ -484,7 +459,49 @@ document.addEventListener("DOMContentLoaded", function () {
 
 	console.log(filteredBondsData)	
 	// Add the yield curve line
-	svg_bonds.append("path")
+	// svg_bonds.append("path")
+	// 	// bind the data to path element
+	// 	//  data point in yieldCurveData corresponds 
+	// 	//  to a segment/point in the path element's shape. 
+	// 	.datum(filteredBondsData)
+	// 	//.datum(yieldCurveData)
+	// 	.attr("fill", "none")
+	// 	.attr("stroke", "green") // You can choose your desired color
+	// 	.attr("stroke-width", 2)
+	// 	.attr("d", lineYield);
+
+	updateYieldCurve();
+	
+	/* dynamic yield curve to interative bar */
+
+	// function updateYieldCurve() {
+	// 	// Select the path element and bind the updated data to it
+	// 	var updatedPath = svg_bonds.select("path")
+	// 		.datum(filteredBondsData);
+
+	// 	// enter-exit approach works for suer when there's enough delay
+	// 	// Use the enter-update-exit pattern
+	// 	updatedPath.enter()
+	// 		.append("path")
+	// 		.merge(updatedPath)
+	// 		.attr("fill", "none")
+	// 		.attr("stroke", "green")
+	// 		.attr("stroke-width", 2)
+	// 		.transition()
+	// 		.duration(100)
+	// 		.attr("d", d => lineYield(d));
+
+	// 	// updatedPath.transition()
+    //     // .duration(100)
+    //     // .attr("d", d => lineYield(d));
+
+	// 	//Remove any extra path elements that are no longer needed
+	// 	updatedPath.exit().remove();
+	// }
+		
+	//async function updateYieldCurve() {
+	function updateYieldCurve() {
+		svg_bonds.append("path")
 		// bind the data to path element
 		//  data point in yieldCurveData corresponds 
 		//  to a segment/point in the path element's shape. 
@@ -495,48 +512,29 @@ document.addEventListener("DOMContentLoaded", function () {
 		.attr("stroke-width", 2)
 		.attr("d", lineYield);
 
-	//updateYieldCurve();
-	
-	/* dynamic yield curve to interative bar */
-	// function updateYieldCurve() {
-	// 	// Select the path element and bind the updated data to it
-	// 	console.log(svg_bonds.select("path"))
-	// 	console.log(filteredBondsData)
-	// 	console.log("\t ENTERED")
-
-	// 	var updatedPath = svg_bonds.select("path")
-	// 		.datum(filteredBondsData)
-		
-	// 	// Transition the path element to the new data
-	// 	updatedPath.transition()
-	// 	 	.duration(100)
-	// 		.attr("d", d => lineYield(d));
-	// }
-
-	function updateYieldCurve() {
 		// Select the path element and bind the updated data to it
 		var updatedPath = svg_bonds.select("path")
-			.datum(filteredBondsData);
-
-		// enter-exit approach works for suer when there's enough delay
+		  .datum(filteredBondsData);
+	  
+		// enter-exit approach works for sure when there's enough delay
 		// Use the enter-update-exit pattern
 		updatedPath.enter()
-			.append("path")
-			.merge(updatedPath)
-			.attr("fill", "none")
-			.attr("stroke", "green")
-			.attr("stroke-width", 2)
-			.transition()
-			.duration(100)
-			.attr("d", d => lineYield(d));
-
-		// updatedPath.transition()
-        // .duration(100)
-        // .attr("d", d => lineYield(d));
-
-		//Remove any extra path elements that are no longer needed
-		updatedPath.exit().remove();
-	}
+		  .append("path")
+		  .merge(updatedPath)
+		  .attr("fill", "none")
+		  .attr("stroke", "green")
+		  .attr("stroke-width", 2)
+		  .transition()
+		  .duration(100)
+		  .attr("d", d => lineYield(d))
+		  .on("end", () => {
+			// This code will be executed when the transition ends
+			// Remove any extra path elements that are no longer needed
+			updatedPath.exit().remove();
+		  });
+	  
+		// No need for the additional Promise and await here
+	  }
 
 });
 
