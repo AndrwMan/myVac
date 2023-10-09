@@ -16,13 +16,13 @@ document.addEventListener("DOMContentLoaded", async function () {
 	if (!spxData || !bondsData) {
 		// Either SPX or bond data is missing, throw an error
 		throw new Error("SPX or bond data is missing. Cannot draw initial graph.");
-	  }
+	}
 	//console.log(spxData[0]);
 
 	// Define dimensions of the graph
 	var width = 800;
 	var height = 400;
-	var margin = { top: 20, right: 20, bottom: 30, left: 50 };
+	var margin = { top: 20, right: 20, bottom: 50, left: 70 };
 
 	// Create an SVG container for the graph
 	var svg = d3.select("body").append("svg")
@@ -31,6 +31,23 @@ document.addEventListener("DOMContentLoaded", async function () {
 
 	// Set parse function that converts strings to Date objects
 	var parseDate = d3.timeParse("%Y-%m-%d");
+
+	// Add x-axis Title
+	svg.append("text")
+	.attr("class", "x-axis-title")
+	.attr("text-anchor", "middle") // Center the title horizontally
+	.attr("x", width / 2)
+	.attr("y", height - margin.bottom + 40) // Adjust the y position as needed
+	.text("Time (years)");
+
+	// Add y-axis Title
+	svg.append("text")
+	.attr("class", "y-axis-title")
+	.attr("text-anchor", "middle")
+	.attr("transform", "rotate(-90)") // Rotate the title vertically
+	.attr("x", -height / 2)
+	.attr("y", margin.left - 50) // Adjust the x position as needed
+	.text("Adjusted Closing Price ($)");
 
 	// Set the ranges for x and y
 	var x = d3.scaleTime().range([margin.left, width - margin.right]);
@@ -244,6 +261,7 @@ document.addEventListener("DOMContentLoaded", async function () {
 					updateYields(currentDate); // Update bonds graph
 
 					updateYieldCurve();
+					updateInfoGroup();
                 } else {
                     pauseAnimate();
                 }
@@ -343,6 +361,23 @@ document.addEventListener("DOMContentLoaded", async function () {
 	.attr("x2", margin.left)
 	.attr("y2", height - margin.bottom)
 	.attr("stroke", "black");
+
+	// Add x-axis title
+	svg_bonds.append("text")
+	.attr("class", "x-axis-title")
+	.attr("x", width / 2)
+	.attr("y", height - margin.bottom + 40) 
+	.style("text-anchor", "middle")
+	.text("Maturity Horizons");
+
+	// Add y-axis title
+	svg_bonds.append("text")
+	.attr("class", "y-axis-title")
+	.attr("transform", "rotate(-90)")
+	.attr("x", -height / 2)
+	.attr("y", margin.left - 50) 
+	.style("text-anchor", "middle")
+	.text("Market Yield (%)");
 
 	//Extract unique maturity horizons (shortened & original) for x-axis values
 	//var maturityHorizons = [...new Set(bondsData.map(function (d) { return d.maturityHorizon; }))];
@@ -519,8 +554,9 @@ document.addEventListener("DOMContentLoaded", async function () {
 		infoGroup.selectAll(".yield-spread, .yield-shape").remove();
 
 		// Calculate positions based on padding, prevent y-axis overlap
+		// *for consistency should set margin same as SPX graph
 		var padding = 20;	//shift both x & y dims
-		var xOffset = padding + 30;
+		var xOffset = padding + 50;
 		var yOffset = padding; 
 		
 
@@ -608,6 +644,8 @@ document.addEventListener("DOMContentLoaded", async function () {
 	// 		.duration(500)
 	// 		.style("opacity", 0);
 	// });
+
+	
 
 });
 
