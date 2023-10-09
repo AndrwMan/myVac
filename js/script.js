@@ -145,6 +145,8 @@ document.addEventListener("DOMContentLoaded", async function () {
 
 			//await updateYieldCurve();
 			updateYieldCurve();
+
+			updateInfoGroup();
 		}
 	}
 
@@ -227,7 +229,7 @@ document.addEventListener("DOMContentLoaded", async function () {
             var currentX = +verticalBar.attr("x1");
 			//determine upper bound of x-axis pos based on data
             var maxX = x(spxData[spxData.length - 1].date);
-            var animationSpeed = 100; 
+            var animationSpeed = 70; 
 			//convert pixels to date value, use to update in animationInterval
             var currentDateIndex = d3.bisector(function (d) { return d.date; }).left(spxData, x.invert(currentX));
             var currentDate = spxData[currentDateIndex].date;
@@ -443,7 +445,9 @@ document.addEventListener("DOMContentLoaded", async function () {
 			function (d) { 
 			//console.log( yYield(+d.marketYield) )
 			return yYield(+d.marketYield); 
-		});
+		})
+		//smooths segments 
+		//.curve(d3.curveCardinal);
 
 	// Add the x-axis for bond maturities
 	// var xAxisYield = d3.axisBottom(xYield)
@@ -489,6 +493,121 @@ document.addEventListener("DOMContentLoaded", async function () {
 			// lineYield returns a string (ex: "M x1 y1 L x2 y2")
 			.attr("d", lineYield);		
 	}
+
+
+
+	/* yield Spread features */
+	// Create a group element for displaying the yieldSpread and yieldShape
+	var infoGroup = svg_bonds.append("g")
+	.attr("class", "info-group")
+	.attr("transform", "translate(10, 20)"); // Adjust the position as needed
+
+	// Function to update the displayed yieldSpread and yieldShape
+	function updateInfoGroup() {
+		//ideally use d, but there still seems to be some problem with initial d
+
+		console.log(filteredBondsData)
+		// Find the data for the "3-Month Treasury Constant Maturity Rate" bond
+		var threeMonthData = filteredBondsData.find(function (d) {
+			return d.maturityHorizon === "3-Month Treasury Constant Maturity Rate";
+		});
+		// Store yieldSpread & yieldShape properties from 3-Month bond
+		var defaultYieldSpread = threeMonthData ? threeMonthData.yieldSpread : "";
+		var defaultYieldShape = threeMonthData ? threeMonthData.yieldShape : "";
+
+		// Remove the previous text elements if they exist
+		infoGroup.selectAll(".yield-spread, .yield-shape").remove();
+
+		// Calculate positions based on padding, prevent y-axis overlap
+		var padding = 20;	//shift both x & y dims
+		var xOffset = padding + 30;
+		var yOffset = padding; 
+		
+
+		// Add new text elements for yieldSpread and yieldShape
+		infoGroup.append("text")
+			.attr("class", "yield-spread")
+			.attr("x", xOffset)				
+			.attr("y", yOffset) 			
+			.text("Yield Spread: " + defaultYieldSpread);
+
+		infoGroup.append("text")
+			.attr("class", "yield-shape")
+			.attr("x", xOffset)
+			.attr("y", yOffset + 20)	// prevent text overlap
+			.text("Yield Shape: " + defaultYieldShape);
+	}
+
+	// Call the updateInfoGroup function initially
+	updateInfoGroup();
+
+
+	/* tooltip hover features */
+	// Find the data for the "3-Month Treasury Constant Maturity Rate" bond
+	// var threeMonthData = bondsData.find(function (d) {
+	// 	return d.maturityHorizon === "3-Month Treasury Constant Maturity Rate";
+	// });
+
+	// // Store the yieldSpread and yieldShape properties from the 3-Month bond
+	// var defaultYieldSpread = threeMonthData ? threeMonthData.yieldSpread : "";
+	// var defaultYieldShape = threeMonthData ? threeMonthData.yieldShape : "";
+
+	// // Create a tooltip div
+	// var tooltip = d3.select("body")
+	// .append("div")
+	// .attr("class", "tooltip")
+	// .style("opacity", 0);
+
+	// svg_bonds.selectAll("path")
+    // .on("mouseover", updateTooltip)
+    // .on("mousemove", updateTooltip) // Add mousemove event for drag
+    // .on("mouseout", hideTooltip);
+
+	// // Function to hide the tooltip
+	// function hideTooltip() {
+	// 	tooltip.transition()
+	// 		.duration(500)
+	// 		.style("opacity", 0);
+	// }
+
+	// function updateTooltip(d) {
+	// 	tooltip.transition()
+	// 		.duration(200)
+	// 		.style("opacity", 0.9);
+	
+	// 	var tooltipContent = "Market Yield: " + d.marketYield + "<br>Maturity Horizon: " + d.maturityHorizon;
+	
+	// 	// Use the default yieldSpread and yieldShape properties
+	// 	tooltipContent += "<br>Yield Spread: " + defaultYieldSpread + "<br>Yield Shape: " + defaultYieldShape;
+	
+	// 	tooltip.html(tooltipContent)
+	// 		.style("left", (d3.event.pageX + 5) + "px")
+	// 		.style("top", (d3.event.pageY - 28) + "px");
+	// }
+	
+
+	// Add event listeners to the path elements to show tooltips on hover
+	// svg_bonds.selectAll("path")
+	// 	.on("mouseover", function (event, d) {
+	// 		tooltip.transition()
+	// 			.duration(200)
+	// 			.style("opacity", 0.9);
+			
+	// 		var tooltipContent = "Market Yield: " + d.marketYield;
+	// 		// + "<br>Maturity Horizon: " + d.maturityHorizon
+
+	// 		// Use the default yieldSpread and yieldShape properties
+	// 		//tooltipContent += "<br>Yield Spread: " + defaultYieldSpread + "<br>Yield Shape: " + defaultYieldShape;
+			
+	// 		tooltip.html(tooltipContent)
+	// 			.style("left", (event.pageX + 5) + "px")
+	// 			.style("top", (event.pageY - 28) + "px");
+	// 	})
+	// .on("mouseout", function (d) {
+	// 	tooltip.transition()
+	// 		.duration(500)
+	// 		.style("opacity", 0);
+	// });
 
 });
 
