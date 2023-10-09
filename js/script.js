@@ -7,8 +7,10 @@ document.addEventListener("DOMContentLoaded", async function () {
 		console.log('D3.js is Not loaded in this project.');
 	}
 	//verify php data available
+	// note that there are ~6459 dates x 6 maturity horizons = 38754 dpts
 	console.log(bondsData);
 	//bookedmarked version of same url will not be updated, no new logs
+	// note that there are ~6231 dates 
 	console.log(spxData);
 	
 	if (!spxData || !bondsData) {
@@ -75,6 +77,8 @@ document.addEventListener("DOMContentLoaded", async function () {
 
 	//programmtically set the very first date, still "1999-01-04"
 	var minDate = d3.min(spxData, function(d) { return d.date; });
+	//SPX data has one less data pt than bondsData (start: "1999-01-01")
+	console.log(minDate)
 	var initialXPosition = x(minDate);
 	var verticalBar = svg.append("line")
 	.attr("x1", initialXPosition)
@@ -289,7 +293,8 @@ document.addEventListener("DOMContentLoaded", async function () {
 			console.log(dateValue)
 			console.log(typeof(dateValue))
 			// even though the anon func is callback
-			//  bbut filter may still need time to complete filter
+			//  but filter may still need time to complete filter
+			// *double check if returned filtered data is off or dateValue 
 			filteredBondsData = bondsData.filter(function (d) {
 			//var filteredBondsData = bondsData.filter(function (d) {
 				//ensures both dates are Date objects
@@ -384,7 +389,7 @@ document.addEventListener("DOMContentLoaded", async function () {
 			numericMarketYields = await new Promise((resolve) => {
 			var result = bondsData
 				.filter(function (d) {
-				console.log("\t numericMarketYields");
+				//console.log("\t numericMarketYields");
 				return !isNaN(+d.marketYield) && d.marketYield !== ".";
 				})
 				.map(function (d) {
@@ -436,7 +441,7 @@ document.addEventListener("DOMContentLoaded", async function () {
 		})
 		.y(
 			function (d) { 
-			console.log( yYield(+d.marketYield) )
+			//console.log( yYield(+d.marketYield) )
 			return yYield(+d.marketYield); 
 		});
 

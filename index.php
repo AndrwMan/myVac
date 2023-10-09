@@ -33,7 +33,8 @@
 		'DGS5' => '5-Year Treasury Constant Maturity Rate',
 		'DGS10' => '10-Year Treasury Constant Maturity Rate',
 		'DGS20' => '20-Year Treasury Constant Maturity Rate',
-		'DGS30' => '30-Year Treasury Constant Maturity Rate'
+		'DGS30' => '30-Year Treasury Constant Maturity Rate',
+		'T10Y3M' => '10-Year Minus 3-Month Treasury'			//metric for shape of yield curve
 	);
 
 	//specify desired time range of data
@@ -49,6 +50,10 @@
 	$file_type = urlencode("json");
 	//$file_type = urlencode("xml");	//uncomment respective code for returned format
 
+	// get yield spread data once 
+	// $t10y3m_url = "{$base_url}?series_id=T10Y3M&api_key={$api_key}&observation_start={$start_date}&observation_end={$end_date}&file_type={$file_type}";
+	// $t10y3m_response = file_get_contents($t10y3m_url);
+	// $t10y3m_data = json_decode($t10y3m_response, true);
 
 	$bonds_reformatted = array();
 
@@ -73,22 +78,84 @@
 			// echo "<pre>"; 
 			// print_r($data);
 			// echo "</pre>";
-				
+			
+			// can also loop thru 'T10Y3M' as the same time as each bond
+			//  if 'T10Y3M' was read each time (not part of outer for loop)
+			//  but need to gurantee that the dates line up from the start 
+			//   and a indexed for-loop with max-iter=min(len(currBond), len('T10Y3M'))
+			// ex: 'T10Y3M' is longer, with 1 actual extra data point at the end
+			// doing so also introduces tighter coupling of code
+
+			
+			if ($series_id != 'T10Y3M') {
 			// display the data for each series
 			//echo "Market Yield Data for $series_name:<br>";
-			foreach ($data['observations'] as $observation) {
-				$date = $observation['date'];
-				$value = $observation['value'];
-				//echo "Date: $date, Value: $value\n";
+				foreach ($data['observations'] as $observation) {
+					$date = $observation['date'];
+					$value = $observation['value'];
+					//echo "Date: $date, Value: $value\n";
 
-				// Create an object for each data point, add to $bonds_reformatted
-				$data_point = array(
-					"marketYield" => $value,
-					"maturityHorizon" => $series_name, // Assuming you want to use the series name as maturity horizon
-					"date" => $date
-				);
+					//if ($series_id != 'T10Y3M') {
+						// Create an object for each data point, add to $bonds_reformatted
+						$data_point = array(
+							"marketYield" => $value,
+							"maturityHorizon" => $series_name, // use series name as maturity horizon
+							"date" => $date
+						);
 
-				$bonds_reformatted[] = $data_point;
+						$bonds_reformatted[] = $data_point;
+					//} 
+					//else  {
+						//want to loop thru T10Y3
+						// if last iter (T10Y3) &
+						// if T10Y3 $date == $data_point["date"]
+						// append "yieldSpread": value
+						// need '&' to use references (modify $bonds_reformatted, not copy)
+						// foreach ($bonds_reformatted as &$curr_bond) {
+						// 	// match a bond on a date to its correct yieldSpread
+						// 	if ( (isset($curr_bond['date'])) && ($curr_bond['date'] == $date) ) {
+						// 	// Append yieldSpread property & assign matched value
+						// 	$curr_bond["yieldSpread"] = $value;
+						// 	}
+						// }	
+					//}
+
+					//$bonds_reformatted[] = $data_point;
+				}
+			}
+			else {
+				// Note that $bonds_reformatted is much longer but there 
+				// is no need to append yield spread for all 6 maturity horizons
+				// since all 6 are combined into single curve w/ same spread rating
+				for ($i = 0; $i < min(count($data['observations']), count($bonds_reformatted)); $i++) {
+					//$data has each observation in 'T10Y3M'
+					$currentObservation = $data['observations'][$i];
+					$date = $currentObservation['date'];
+					$value = $currentObservation['value'];
+
+					// match a bond on a date to its correct yieldSpread
+					if ( (isset($bonds_reformatted[$i]['date'])) && 
+						($bonds_reformatted[$i]['date'] == $date) ) {
+						// Append yieldSpread property & assign matched value
+						$bonds_reformatted[$i]["yieldSpread"] = $value;
+						$yieldSpread = $bonds_reformatted[$i]["yieldSpread"];
+
+						if ($yieldSpread > -0.25 && $yieldSpread < 0.25) {
+							//close to 0
+							$bonds_reformatted[$i]["yieldShape"] = 'Flat';
+						} elseif ($yieldSpread <= -0.25) {
+							// negative
+							$bonds_reformatted[$i]["yieldShape"] = 'Inverted';
+						} else {
+							// positive
+							$bonds_reformatted[$i]["yieldShape"] = 'Normal';
+						}
+					}
+				}
+
+				// echo "<pre>";
+				// print_r($bonds_reformatted);
+				// echo "</pre>";
 			}
 
 			/* xml respective code */
