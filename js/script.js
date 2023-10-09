@@ -531,38 +531,92 @@ document.addEventListener("DOMContentLoaded", async function () {
 	//console.log(filteredBondsData)	
 
 	var lineHistory = [];
-
+	// create input retriever for # of lag periods 
+	createLagInput();
 	// draw initial yield curve
 	updateYieldCurve();
 
 	function updateYieldCurve() {
-		// Remove old path elements
-		//svg_bonds.selectAll("path").remove();
-
-		// svg_bonds.selectAll("path")
-		// .filter(function (d, i) {
-		// 	console.log(i)
-		// 	return i > lineHistory.length - 10;
-		// })
-		// .remove();	
-
-		//ensure that there are atleast 10 sets (of old lines)
-		if (lineHistory.length >= 10) {
-			// Ensure the history does not exceed 10 sets
-			var removedSet = lineHistory.shift(); // Return the oldest set
-			//console.log(svg_bonds.selectAll("path"))
-			// svg_bonds.selectAll("path") returns a NodeList of elements  
-			// so d iterates through __data__ property of path elements 
-			//  returned by `svg_bonds.selectAll("path").`
-			// each d is an array of 6 objects (the bond types)
+		//selectively Remove old path elements/ (only a subset of lines) to create lag
+		var numLagsInput = document.getElementById("num-lags");
+		// if no text is specified the input event on "Update" is not actually triggered
+		//  but  `document.getElementById` can still retrive text, and it will be empty str
+		//  this leads to wrong behavior:  
+		//   numLags = "" -> 0, (lineHistory.length >= numLags) -> true, so all lines preserved
+		//   and (return 0.1 + (historyIndex / numLags) * 0.4;) -> NaN, so opacity is not changed
+    	// use # of lags=10 when handling missing or nonNumeric string
+		var numLags = numLagsInput.value.trim() === "" ? 10 : parseInt(numLagsInput.value)
+		console.log(numLags)
+		
+		// Ensure that there are at least numLags sets of old lines
+		if (lineHistory.length >= numLags) {
+			// Remove excess old lines
+			var numToRemove = lineHistory.length - numLags;
+			// # of iters is just # of extra old lines above the # to keep 
+			for (var i = 0; i < numToRemove; i++) {
+			var removedSet = lineHistory.shift(); // Remove the oldest set
 			svg_bonds.selectAll("path").filter(function (d) {
-				console.log(d)
-				console.log(removedSet)
-				// Remove oldest set
 				return d === removedSet;
 			}).remove();
+			}
 		}
-	
+
+		//ensure that there are atleast 10 sets (of old lines)
+		// if (lineHistory.length >= 10) {
+		// 	// Ensure the history does not exceed 10 sets
+		// 	var removedSet = lineHistory.shift(); // Return the oldest set
+		// 	//console.log(svg_bonds.selectAll("path"))
+		// 	// svg_bonds.selectAll("path") returns a NodeList of elements  
+		// 	// so d iterates through __data__ property of path elements 
+		// 	//  returned by `svg_bonds.selectAll("path").`
+		// 	// each d is an array of 6 objects (the bond types)
+		// 	svg_bonds.selectAll("path").filter(function (d) {
+		// 		console.log(d)
+		// 		console.log(removedSet)
+		// 		// Remove oldest set
+		// 		return d === removedSet;
+		// 	}).remove();
+		// }
+
+		/* lagging periods features */ 
+		// alternative approach: push to lineHistory, redraw 
+		//  instead of selective remove
+
+		// constant opacity regardless of "history" (how new, old a past line is)
+		// // Change opacity of unremoved lines in the history to 0.3
+		// svg_bonds.selectAll("path").filter(function (d) {
+		// 	// checks that the paths plotted is in the lineHistory,
+		// 	//  if paths is not plotted returns -1
+		// 	return lineHistory.indexOf(d) >= 0;
+		// }).attr("stroke-opacity", 0.3);
+
+		console.log(lineHistory)
+		console.log(svg_bonds.selectAll("path"))
+		svg_bonds.selectAll("path").filter(function (d) {
+			// *Sometimes there is no data for a day,
+			//  therefore some <path>s in the NodeList has  
+			//  data array empty ("__data__: Array []") & has "length: 0"
+			
+			//var historyIndex = lineHistory.indexOf(d);
+			// // we Not check opacity > 0 b/c we still 
+			// //  want to include the oldest line, (just w/ very low opacity)
+			//var opacity = historyIndex / 10; // 
+			//return historyIndex >= 0 && opacity > 0; 
+			
+			// checks that the paths plotted is in the lineHistory 
+			//  if paths is not plotted returns -1
+			return lineHistory.indexOf(d) >= 0;
+		}).attr("stroke-opacity", function (d, i) {
+			// When appending a new path element to the SVG container 
+			//  using svg_bonds.append("path"), D3.js appends it to the end of the DOM, 
+			//  so it becomes the last path element in the NodeList 
+			//  returned by selectAll("path").
+			var historyIndex = lineHistory.indexOf(d);
+			// Scale opacity based on append history, but set bounds [0.1, 0.5]
+			//return 0.1 + (historyIndex / 10) * 0.4;
+			return 0.1 + (historyIndex / numLags) * 0.4;
+		});
+		
 		// Append new path element to svg (container) element
 		svg_bonds
 			.append("path")
@@ -575,49 +629,35 @@ document.addEventListener("DOMContentLoaded", async function () {
 			// lineYield returns a string (ex: "M x1 y1 L x2 y2")
 			.attr("d", lineYield);	
 
-			/* lagging periods features */ 
-			// alternative approach: push to lineHistory, redraw 
-			//  instead of selective remove
-
-			// fixed opacity regardless of "history" (how new, old a past line is)
-			// // Change opacity of unremoved lines in the history to 0.3
-			// svg_bonds.selectAll("path").filter(function (d) {
-			// 	// checks that the paths plotted is in the lineHistory,
-			// 	//  if paths is not plotted returns -1
-			// 	return lineHistory.indexOf(d) >= 0;
-			// }).attr("stroke-opacity", 0.3);
-
-			console.log(lineHistory)
-			console.log(svg_bonds.selectAll("path"))
-			svg_bonds.selectAll("path").filter(function (d) {
-				// *Sometimes there is no data for a day,
-				//  therefore some <path>s in the NodeList has  
-				//  data array empty ("__data__: Array []") & has "length: 0"
-				
-				//var historyIndex = lineHistory.indexOf(d);
-				// // we Not check opacity > 0 b/c we still 
-				// //  want to include the oldest line, (just w/ very low opacity)
-				//var opacity = historyIndex / 10; // 
-				//return historyIndex >= 0 && opacity > 0; 
-				
-				// checks that the paths plotted is in the lineHistory 
-				//  if paths is not plotted returns -1
-				return lineHistory.indexOf(d) >= 0;
-			}).attr("stroke-opacity", function (d, i) {
-				// When appending a new path element to the SVG container 
-				//  using svg_bonds.append("path"), D3.js appends it to the end of the DOM, 
-				//  so it becomes the last path element in the NodeList 
-				//  returned by selectAll("path").
-				var historyIndex = lineHistory.indexOf(d);
-				// Scale opacity based on append history, but set bounds [0.1, 0.5]
-				return 0.1 + (historyIndex / 10) * 0.4;
-			});
-
 			// Push current line segments/(set/array of objects) into a history
 			lineHistory.push(filteredBondsData);
 			
 	}
 
+	/* lagging periods feature  */
+	// Create and append the input element
+	function createLagInput() {
+    var inputLabel = document.createElement("label");
+    inputLabel.textContent = "Number of Past Periods:";
+    inputLabel.setAttribute("for", "num-lags");
+
+    var inputElement = document.createElement("input");
+    inputElement.setAttribute("type", "number");
+    inputElement.setAttribute("id", "num-lags");
+    inputElement.setAttribute("value", "10");
+
+    var updateButton = document.createElement("button");
+    updateButton.textContent = "Update";
+    updateButton.addEventListener("click", function () {
+        // Call the updateYieldCurve function when the button is clicked
+        updateYieldCurve();
+    })
+
+	// Append input elements to the body
+	document.body.appendChild(inputLabel);
+	document.body.appendChild(inputElement);
+	document.body.appendChild(updateButton);
+	}
 
 
 	/* yield Spread features */
