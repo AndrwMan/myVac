@@ -394,19 +394,19 @@ document.addEventListener("DOMContentLoaded", async function () {
 	// different from data's (long) "maturityHorizon" property 
 	// and still match a allowed value in the .domain(<array>),
 	// Must create a mapping between tick labels & original "maturityHorizon" values
-	var ticks2dataMHMap = {};
-	uniqueMaturityHorizons.forEach(function (label, index) {
-		// takes each value of "maturityHorizon" property in 
-		//  and assign it the respective value in maturityHorizons 
-		ticks2dataMHMap[label] = maturityHorizons[index];
-	});
-	console.log(ticks2dataMHMap)
+	// var ticks2dataMHMap = {};
+	// uniqueMaturityHorizons.forEach(function (label, index) {
+	// 	// takes each value of "maturityHorizon" property in 
+	// 	//  and assign it the respective value in maturityHorizons 
+	// 	ticks2dataMHMap[label] = maturityHorizons[index];
+	// });
+	// console.log(ticks2dataMHMap)
 
 	var str2int = {};
 	maturityMonths = [3, 24, 60, 120, 240, 360];
 	uniqueMaturityHorizons.forEach(function (months, index) {
-		// Use the current value from maturityMonths as the key
-		// and assign the corresponding value from maturityHorizon
+		// Use current string from uniqueMaturityHorizons as the key
+		//  & assign the corresponding value from maturityMonths
 		str2int[months] = maturityMonths[index];
 	});
 
@@ -510,24 +510,10 @@ document.addEventListener("DOMContentLoaded", async function () {
 	// since xYield is discrete (using .scaleBand()), cannot use numbers (decimals)
 	// have to use subset of domain, which is hard to get correct granualrity 
 	// that match custom spacing
+	// Add the x-axis for bond maturities with custom tick values
 	var xAxisYield = d3.axisBottom(xYield)
 		.tickValues(maturityMonths)
-		// .tickFormat((d) => {
-		// 	if (str2int[d.maturityHorizon] === 3) return '3-month';
-		// 	if (str2int[d.maturityHorizon] === 24) return '2-year';
-		// 	if (str2int[d.maturityHorizon] === 60) return '5-year';
-		// 	if (str2int[d.maturityHorizon] === 120) return '10-year';
-		// 	if (str2int[d.maturityHorizon] === 240) return '20-year';
-		// 	if (str2int[d.maturityHorizon] === 360) return '30-year';
-		// 	return d; // Fallback to the value itself
-		// });
 		.tickFormat((d, i) => maturityHorizons[i]);
-		
-
-	// Add the x-axis for bond maturities with custom tick values
-	// var xAxisYield = d3.axisBottom(xYield)
-	// .tickValues(tickValues) // Set custom tick values
-	// .tickFormat(function (d, i) { return maturityHorizons[i].duration; }); // Set tick labels 
 
 	svg_bonds.append("g")
 		.attr("class", "x-axis")
@@ -544,12 +530,38 @@ document.addEventListener("DOMContentLoaded", async function () {
 	/* dynamic yield curve to interative bar */
 	//console.log(filteredBondsData)	
 
+	var lineHistory = [];
+
 	// draw initial yield curve
 	updateYieldCurve();
 
 	function updateYieldCurve() {
 		// Remove old path elements
-		svg_bonds.selectAll("path").remove();
+		//svg_bonds.selectAll("path").remove();
+
+		// svg_bonds.selectAll("path")
+		// .filter(function (d, i) {
+		// 	console.log(i)
+		// 	return i > lineHistory.length - 10;
+		// })
+		// .remove();	
+
+		//ensure that there are atleast 10 sets (of old lines)
+		if (lineHistory.length >= 10) {
+			// Ensure the history does not exceed 10 sets
+			var removedSet = lineHistory.shift(); // Return the oldest set
+			//console.log(svg_bonds.selectAll("path"))
+			// svg_bonds.selectAll("path") returns a NodeList of elements  
+			// so d iterates through __data__ property of path elements 
+			//  returned by `svg_bonds.selectAll("path").`
+			// each d is an array of 6 objects (the bond types)
+			svg_bonds.selectAll("path").filter(function (d) {
+				console.log(d)
+				console.log(removedSet)
+				// Remove oldest set
+				return d === removedSet;
+			}).remove();
+		}
 	
 		// Append new path element to svg (container) element
 		svg_bonds
@@ -561,7 +573,49 @@ document.addEventListener("DOMContentLoaded", async function () {
 			// actually redraws the graph
 			// "d" is "define"/"data" attribute
 			// lineYield returns a string (ex: "M x1 y1 L x2 y2")
-			.attr("d", lineYield);		
+			.attr("d", lineYield);	
+
+			/* lagging periods features */ 
+			// alternative approach: push to lineHistory, redraw 
+			//  instead of selective remove
+
+			// fixed opacity regardless of "history" (how new, old a past line is)
+			// // Change opacity of unremoved lines in the history to 0.3
+			// svg_bonds.selectAll("path").filter(function (d) {
+			// 	// checks that the paths plotted is in the lineHistory,
+			// 	//  if paths is not plotted returns -1
+			// 	return lineHistory.indexOf(d) >= 0;
+			// }).attr("stroke-opacity", 0.3);
+
+			console.log(lineHistory)
+			console.log(svg_bonds.selectAll("path"))
+			svg_bonds.selectAll("path").filter(function (d) {
+				// *Sometimes there is no data for a day,
+				//  therefore some <path>s in the NodeList has  
+				//  data array empty ("__data__: Array []") & has "length: 0"
+				
+				//var historyIndex = lineHistory.indexOf(d);
+				// // we Not check opacity > 0 b/c we still 
+				// //  want to include the oldest line, (just w/ very low opacity)
+				//var opacity = historyIndex / 10; // 
+				//return historyIndex >= 0 && opacity > 0; 
+				
+				// checks that the paths plotted is in the lineHistory 
+				//  if paths is not plotted returns -1
+				return lineHistory.indexOf(d) >= 0;
+			}).attr("stroke-opacity", function (d, i) {
+				// When appending a new path element to the SVG container 
+				//  using svg_bonds.append("path"), D3.js appends it to the end of the DOM, 
+				//  so it becomes the last path element in the NodeList 
+				//  returned by selectAll("path").
+				var historyIndex = lineHistory.indexOf(d);
+				// Scale opacity based on append history, but set bounds [0.1, 0.5]
+				return 0.1 + (historyIndex / 10) * 0.4;
+			});
+
+			// Push current line segments/(set/array of objects) into a history
+			lineHistory.push(filteredBondsData);
+			
 	}
 
 
@@ -593,7 +647,6 @@ document.addEventListener("DOMContentLoaded", async function () {
 		var padding = 20;	//shift both x & y dims
 		var xOffset = padding + 50;
 		var yOffset = padding; 
-		
 
 		// Add new text elements for yieldSpread and yieldShape
 		infoGroup.append("text")
@@ -679,79 +732,6 @@ document.addEventListener("DOMContentLoaded", async function () {
 	// 		.duration(500)
 	// 		.style("opacity", 0);
 	// });
-
-// Sample data
-// const data = [10, 20, 30, 40, 50];
-
-// // Define the SVG container dimensions
-// const svgWidth = 400;
-// const svgHeight = 200;
-
-// // Define the scaling factors for bandwidths
-// const scalingFactors = [1, 1, 1, 1, 2]; // Example scaling factors
-// const scalingFactorsTicks = [1, 2, 3, 4, 8];
-
-// // Define category names
-// const categoryNames = ['e', 'd', 'c', 'b', 'a'];
-
-// // Create an SVG element and append it to the body
-// const test_svg = d3.select('body').append('svg')
-//     .attr('width', svgWidth)
-//     .attr('height', svgHeight)
-//     .attr('id', 'test_svg');
-
-// // Define margins and dimensions for the chart
-// const test_margin = { top: 40, right: 40, bottom: 40, left: 40 };
-// const test_width = svgWidth - test_margin.left - test_margin.right;
-// const test_height = svgHeight - test_margin.top - test_margin.bottom;
-
-// // Create a g (group) element for the chart and translate it to account for margins
-// const chart = test_svg.append('g')
-//     .attr('transform', `translate(${test_margin.left},${test_margin.top})`);
-
-// // Create a linear scale for the y-axis
-// const yScale = d3.scaleLinear()
-//     .domain([0, d3.max(data)])
-//     .nice()
-//     .range([test_height, 0]);
-
-// // Create a band scale for the x-axis
-// const xScale = d3.scaleBand()
-//     //.domain(data.map((d, i) => i)) // Use numeric indices
-//     //.domain(scalingFactorsTicks)
-// 	// .range([0, test_width])
-//     // .paddingInner(0.1); // Add padding between bars
-// 	.domain(categoryNames) // Use category names
-//     .range([0, test_width])
-//     .paddingInner(0.1); // Add padding between bars
-
-// // Create and append the bars to the chart
-// chart.selectAll('.bar')
-//     .data(data)
-//     .enter().append('rect')
-//     .attr('class', 'bar')
-//     .attr('x', (d, i) => xScale(i))
-//     .attr('y', d => yScale(d))
-//     .attr('width', (d, i) => xScale.bandwidth() * scalingFactors[i])
-//     .attr('height', d => test_height - yScale(d));
-
-// // Create x-axis and adjust the tick positions
-// const xAxis = d3.axisBottom(xScale)
-//     .tickValues(scalingFactorsTicks)
-//     .tickFormat((d, i) => categoryNames[i]);
-// 	//.tickValues(categoryNames) // Use category names
-//     //.tickFormat((d, i) => d) // Show the same category names
-
-// chart.append('g')
-//     .attr('class', 'x-axis')
-//     .attr('transform', `translate(0, ${test_height})`)
-//     .call(xAxis);
-
-// // Create y-axis
-// const yAxis = d3.axisLeft(yScale);
-// chart.append('g')
-//     .attr('class', 'y-axis')
-//     .call(yAxis);
 
 });
 
