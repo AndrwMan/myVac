@@ -402,11 +402,28 @@ document.addEventListener("DOMContentLoaded", async function () {
 	});
 	console.log(ticks2dataMHMap)
 
+	var str2int = {};
+	maturityMonths = [3, 24, 60, 120, 240, 360];
+	uniqueMaturityHorizons.forEach(function (months, index) {
+		// Use the current value from maturityMonths as the key
+		// and assign the corresponding value from maturityHorizon
+		str2int[months] = maturityMonths[index];
+	});
+
 	// Set up x scales for the yield curve
-	var xYield = d3.scaleBand()
+	// var xYield = d3.scaleBand()
+	// 	//.domain() determines both the x-axis ticks
+	// 	// and assigns x-values to labels...
+	// 	.domain(maturityHorizons)
+	// 	.range([margin.left, width - margin.right])
+	// 	//.padding(0.1); //between segments
+
+	var xYield = d3.scaleLinear()
 		//.domain() determines both the x-axis ticks
 		// and assigns x-values to labels...
-		.domain(maturityHorizons)
+		// can pass list but should only have 2 values as min, max bounds
+		//.domain(maturityMonths)
+		.domain([d3.min(maturityMonths), d3.max(maturityMonths)])
 		.range([margin.left, width - margin.right])
 		//.padding(0.1); //between segments
 
@@ -460,9 +477,10 @@ document.addEventListener("DOMContentLoaded", async function () {
 			// console.log(ticks2dataMHMap[d.maturityHorizon])
 			// console.log(xYield(ticks2dataMHMap[d.maturityHorizon]))
 			console.log(d)
-			var mappedValue = ticks2dataMHMap[d.maturityHorizon];
+			//var mappedValue = ticks2dataMHMap[d.maturityHorizon];
+			var mappedValue = str2int[d.maturityHorizon];
 			//debug: domain & maturityHorizons equality 
-			// console.log("Mapped Value:", mappedValue);
+			console.log("Mapped Value:", mappedValue);
 			// console.log("Domain:", xYield.domain());
 			// console.log("Domain:", maturityHorizons);
 
@@ -474,7 +492,8 @@ document.addEventListener("DOMContentLoaded", async function () {
 			// console.log(xYield(mappedValue) + xYield.bandwidth() / 2)
 
 			// +: shifts the x-value over , // xYield.bandwidth(): gets the width of a category/band, // 2: divide the interval len by 2
-			return xYield(mappedValue) + xYield.bandwidth() / 2;
+			//return xYield(mappedValue) + xYield.bandwidth() / 2;
+			return xYield(mappedValue);
 		})
 		.y(
 			function (d) { 
@@ -487,7 +506,23 @@ document.addEventListener("DOMContentLoaded", async function () {
 	// Add the x-axis for bond maturities
 	// var xAxisYield = d3.axisBottom(xYield)
     // 	.tickValues(xPositions)
-	var xAxisYield = d3.axisBottom(xYield);
+	//the values allowed in tickValues() are tied to xYield
+	// since xYield is discrete (using .scaleBand()), cannot use numbers (decimals)
+	// have to use subset of domain, which is hard to get correct granualrity 
+	// that match custom spacing
+	var xAxisYield = d3.axisBottom(xYield)
+		.tickValues(maturityMonths)
+		// .tickFormat((d) => {
+		// 	if (str2int[d.maturityHorizon] === 3) return '3-month';
+		// 	if (str2int[d.maturityHorizon] === 24) return '2-year';
+		// 	if (str2int[d.maturityHorizon] === 60) return '5-year';
+		// 	if (str2int[d.maturityHorizon] === 120) return '10-year';
+		// 	if (str2int[d.maturityHorizon] === 240) return '20-year';
+		// 	if (str2int[d.maturityHorizon] === 360) return '30-year';
+		// 	return d; // Fallback to the value itself
+		// });
+		.tickFormat((d, i) => maturityHorizons[i]);
+		
 
 	// Add the x-axis for bond maturities with custom tick values
 	// var xAxisYield = d3.axisBottom(xYield)
@@ -645,7 +680,78 @@ document.addEventListener("DOMContentLoaded", async function () {
 	// 		.style("opacity", 0);
 	// });
 
-	
+// Sample data
+// const data = [10, 20, 30, 40, 50];
+
+// // Define the SVG container dimensions
+// const svgWidth = 400;
+// const svgHeight = 200;
+
+// // Define the scaling factors for bandwidths
+// const scalingFactors = [1, 1, 1, 1, 2]; // Example scaling factors
+// const scalingFactorsTicks = [1, 2, 3, 4, 8];
+
+// // Define category names
+// const categoryNames = ['e', 'd', 'c', 'b', 'a'];
+
+// // Create an SVG element and append it to the body
+// const test_svg = d3.select('body').append('svg')
+//     .attr('width', svgWidth)
+//     .attr('height', svgHeight)
+//     .attr('id', 'test_svg');
+
+// // Define margins and dimensions for the chart
+// const test_margin = { top: 40, right: 40, bottom: 40, left: 40 };
+// const test_width = svgWidth - test_margin.left - test_margin.right;
+// const test_height = svgHeight - test_margin.top - test_margin.bottom;
+
+// // Create a g (group) element for the chart and translate it to account for margins
+// const chart = test_svg.append('g')
+//     .attr('transform', `translate(${test_margin.left},${test_margin.top})`);
+
+// // Create a linear scale for the y-axis
+// const yScale = d3.scaleLinear()
+//     .domain([0, d3.max(data)])
+//     .nice()
+//     .range([test_height, 0]);
+
+// // Create a band scale for the x-axis
+// const xScale = d3.scaleBand()
+//     //.domain(data.map((d, i) => i)) // Use numeric indices
+//     //.domain(scalingFactorsTicks)
+// 	// .range([0, test_width])
+//     // .paddingInner(0.1); // Add padding between bars
+// 	.domain(categoryNames) // Use category names
+//     .range([0, test_width])
+//     .paddingInner(0.1); // Add padding between bars
+
+// // Create and append the bars to the chart
+// chart.selectAll('.bar')
+//     .data(data)
+//     .enter().append('rect')
+//     .attr('class', 'bar')
+//     .attr('x', (d, i) => xScale(i))
+//     .attr('y', d => yScale(d))
+//     .attr('width', (d, i) => xScale.bandwidth() * scalingFactors[i])
+//     .attr('height', d => test_height - yScale(d));
+
+// // Create x-axis and adjust the tick positions
+// const xAxis = d3.axisBottom(xScale)
+//     .tickValues(scalingFactorsTicks)
+//     .tickFormat((d, i) => categoryNames[i]);
+// 	//.tickValues(categoryNames) // Use category names
+//     //.tickFormat((d, i) => d) // Show the same category names
+
+// chart.append('g')
+//     .attr('class', 'x-axis')
+//     .attr('transform', `translate(0, ${test_height})`)
+//     .call(xAxis);
+
+// // Create y-axis
+// const yAxis = d3.axisLeft(yScale);
+// chart.append('g')
+//     .attr('class', 'y-axis')
+//     .call(yAxis);
 
 });
 
