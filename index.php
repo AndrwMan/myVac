@@ -11,7 +11,7 @@
 		use `C:\Program Files (x86)\Apache24\bin>httpd -k restart`  
 		in cmd to restart server (mainly on config changes)
 	-->
-    <title>Market Yield Data Versus Stock Market index</title>
+    <title>myVac</title>
 
 	<!-- load prebuilt d3.js from CDN -->
 	<!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.2.0/d3.min.js"></script> -->
@@ -21,7 +21,7 @@
 	<script src="js/d3.min.js"></script>
 </head>
 <body>
-    <h1>Market Yield Data</h1>
+    <h1>Market Yield Data Versus Stock Market index</h1>
 
     <?php
     /* fetch bonds data */

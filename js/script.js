@@ -207,6 +207,8 @@ document.addEventListener("DOMContentLoaded", async function () {
 
 	var snapshotXPosition = null; // var to store position of snapshot bar
 
+	// global scope: to be used display text later
+	var snapshotData;
 	function toggleSnapshot() {
 	if (snapshotXPosition === null) {
 		// Draw a snapshot bar, pos fixed
@@ -217,14 +219,16 @@ document.addEventListener("DOMContentLoaded", async function () {
 			.attr("x1", snapshotXPosition)
 			.attr("x2", snapshotXPosition);
 
-			svg_bonds
-				.append("path")
-				.attr("class", "snapshot-line")
-				.datum(filteredBondsData)
-				.attr("fill", "none")
-				.attr("stroke", "orange")
-				.attr("stroke-width", 2)
-				.attr("d", lineYield);	
+
+		snapshotData = filteredBondsData; 
+		svg_bonds
+			.append("path")
+			.attr("class", "snapshot-line")
+			.datum(filteredBondsData)
+			.attr("fill", "none")
+			.attr("stroke", "orange")
+			.attr("stroke-width", 2)
+			.attr("d", lineYield);	
 
 			// Push current line segments/(set/array of objects) into a history
 			lineHistory.push(filteredBondsData);
@@ -625,7 +629,9 @@ document.addEventListener("DOMContentLoaded", async function () {
 			//  if paths is not plotted returns -1
 			return lineHistory.indexOf(d) >= 0;
 			}
-		}).attr("stroke-opacity", function (d, i) {
+		})
+		.attr("stroke", "#E66060")	//make red slighly lighter
+		.attr("stroke-opacity", function (d, i) {
 			// When appending a new path element to the SVG container 
 			//  using svg_bonds.append("path"), D3.js appends it to the end of the DOM, 
 			//  so it becomes the last path element in the NodeList 
@@ -685,18 +691,40 @@ document.addEventListener("DOMContentLoaded", async function () {
 	.attr("class", "info-group")
 	.attr("transform", "translate(10, 20)"); // Adjust the position as needed
 
+	function getYieldSpreadShape(currData) {
+		var threeMonthData = currData.find(function (d) {
+			return d.maturityHorizon === "3-Month Treasury Constant Maturity Rate";
+		});
+		// Store yieldSpread & yieldShape properties from 3-Month bond
+		var defaultYieldSpread = threeMonthData ? threeMonthData.yieldSpread : "no data";
+		var defaultYieldShape = threeMonthData ? threeMonthData.yieldShape : "no data";
+		
+		return [defaultYieldSpread, defaultYieldShape]
+	}
+
+
+
 	// Function to update the displayed yieldSpread and yieldShape
 	function updateInfoGroup() {
 		//ideally use d, but there still seems to be some problem with initial d
 
 		console.log(filteredBondsData)
-		// Find the data for the "3-Month Treasury Constant Maturity Rate" bond
-		var threeMonthData = filteredBondsData.find(function (d) {
-			return d.maturityHorizon === "3-Month Treasury Constant Maturity Rate";
-		});
-		// Store yieldSpread & yieldShape properties from 3-Month bond
-		var defaultYieldSpread = threeMonthData ? threeMonthData.yieldSpread : "";
-		var defaultYieldShape = threeMonthData ? threeMonthData.yieldShape : "";
+		// // Find the data for the "3-Month Treasury Constant Maturity Rate" bond
+		// var threeMonthData = filteredBondsData.find(function (d) {
+		// 	return d.maturityHorizon === "3-Month Treasury Constant Maturity Rate";
+		// });
+		// // Store yieldSpread & yieldShape properties from 3-Month bond
+		// var defaultYieldSpread = threeMonthData ? threeMonthData.yieldSpread : "";
+		// var defaultYieldShape = threeMonthData ? threeMonthData.yieldShape : "";
+		
+		//Call helper to get spread for "3-Month Treasury Constant Maturity Rate" bond
+		var [defaultYieldSpread, defaultYieldShape]  = getYieldSpreadShape(filteredBondsData)
+		var snapYieldSpread, snapYieldShape;
+		if (snapshotData && snapshotData.length > 0) {
+			[snapYieldSpread, snapYieldShape] =  getYieldSpreadShape(snapshotData)
+		}
+		console.log(snapYieldSpread)
+		console.log(snapYieldShape)
 
 		// Remove the previous text elements if they exist
 		infoGroup.selectAll(".yield-spread, .yield-shape").remove();
@@ -708,17 +736,47 @@ document.addEventListener("DOMContentLoaded", async function () {
 		var yOffset = padding; 
 
 		// Add new text elements for yieldSpread and yieldShape
-		infoGroup.append("text")
-			.attr("class", "yield-spread")
-			.attr("x", xOffset)				
-			.attr("y", yOffset) 			
-			.text("Yield Spread: " + defaultYieldSpread);
+		// infoGroup.append("text")
+		// 	.attr("class", "yield-spread")
+		// 	.attr("x", xOffset)				
+		// 	.attr("y", yOffset) 			
+		// 	.text("Yield Spread: " + defaultYieldSpread);
 
-		infoGroup.append("text")
-			.attr("class", "yield-shape")
-			.attr("x", xOffset)
-			.attr("y", yOffset + 20)	// prevent text overlap
-			.text("Yield Shape: " + defaultYieldShape);
+		// infoGroup.append("text")
+		// 	.attr("class", "yield-shape")
+		// 	.attr("x", xOffset)
+		// 	.attr("y", yOffset + 20)	// prevent text overlap
+		// 	.text("Yield Shape: " + defaultYieldShape);
+
+		// Create a base text element for yieldSpread and yieldShape
+		var baseText = infoGroup.append("text")
+		.attr("class", "yield-spread yield-shape")
+		.attr("x", xOffset)
+		.attr("y", yOffset);
+	
+		// Append text for defaultYieldSpread and defaultYieldShape
+		//baseText.text("Yield Spread: " + defaultYieldSpread);
+		baseText.append("tspan")
+    		.text("Yield Spread: " + defaultYieldSpread);
+
+		// Conditionally append snapYieldSpread and snapYieldShape
+		if (snapshotData && snapshotData.length > 0) {
+			baseText.append("tspan")
+			.text("\t" +  snapYieldSpread)
+			.style("fill", "orange");
+		}
+		
+		baseText.append("tspan")
+			.text(" Yield Shape: " + defaultYieldShape)
+			.attr("x", xOffset - 5)				
+			.attr("y", yOffset + 20) 
+			.style("fill", "black");
+		
+		if  (snapshotData && snapshotData.length > 0) {
+			baseText.append("tspan")
+			.text("\t" + snapYieldShape)
+			.style("fill", "orange");
+		}
 	}
 
 	// Call the updateInfoGroup function initially
