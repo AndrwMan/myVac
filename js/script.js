@@ -702,6 +702,7 @@ document.addEventListener("DOMContentLoaded", async function () {
 	.attr("transform", "translate(10, 20)"); // Adjust the position as needed
 
 	function getYieldSpreadShape(currData) {
+		// Find the data for the "3-Month Treasury Constant Maturity Rate" bond
 		var threeMonthData = currData.find(function (d) {
 			return d.maturityHorizon === "3-Month Treasury Constant Maturity Rate";
 		});
@@ -718,15 +719,7 @@ document.addEventListener("DOMContentLoaded", async function () {
 	function updateInfoGroup() {
 		//ideally use d, but there still seems to be some problem with initial d
 
-		console.log(filteredBondsData)
-		// // Find the data for the "3-Month Treasury Constant Maturity Rate" bond
-		// var threeMonthData = filteredBondsData.find(function (d) {
-		// 	return d.maturityHorizon === "3-Month Treasury Constant Maturity Rate";
-		// });
-		// // Store yieldSpread & yieldShape properties from 3-Month bond
-		// var defaultYieldSpread = threeMonthData ? threeMonthData.yieldSpread : "";
-		// var defaultYieldShape = threeMonthData ? threeMonthData.yieldShape : "";
-		
+		//console.log(filteredBondsData)
 		//Call helper to get spread for "3-Month Treasury Constant Maturity Rate" bond
 		var [defaultYieldSpread, defaultYieldShape]  = getYieldSpreadShape(filteredBondsData)
 		var snapYieldSpread, snapYieldShape;
