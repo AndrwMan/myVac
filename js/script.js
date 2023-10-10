@@ -212,15 +212,29 @@ document.addEventListener("DOMContentLoaded", async function () {
 		// Draw a snapshot bar, pos fixed
 		snapshotXPosition = verticalBar.attr("x1");
 		verticalBar.clone() // Clone the vertical bar
-			.attr("stroke", "green") // Change the color for snapshot
+			.attr("stroke", "orange") // Change the color for snapshot
 			.attr("class", "snapshot-bar") // Add a class to identify snapshot bars
 			.attr("x1", snapshotXPosition)
 			.attr("x2", snapshotXPosition);
+
+			svg_bonds
+				.append("path")
+				.attr("class", "snapshot-line")
+				.datum(filteredBondsData)
+				.attr("fill", "none")
+				.attr("stroke", "orange")
+				.attr("stroke-width", 2)
+				.attr("d", lineYield);	
+
+			// Push current line segments/(set/array of objects) into a history
+			lineHistory.push(filteredBondsData);
 
 		snapshotButton.text("Reset");
 		} else {
 			// Remove the snapshot bar
 			svg.selectAll(".snapshot-bar").remove();
+			//recall that yield curve snapshot was drawn to diff. container/graph
+			svg_bonds.selectAll(".snapshot-line").remove();
 			snapshotXPosition = null;
 			// toggle button text
 			snapshotButton.text("Snapshot"); 
@@ -556,7 +570,10 @@ document.addEventListener("DOMContentLoaded", async function () {
 			for (var i = 0; i < numToRemove; i++) {
 			var removedSet = lineHistory.shift(); // Remove the oldest set
 			svg_bonds.selectAll("path").filter(function (d) {
+				//test1
+				if (!d3.select(this).classed("snapshot-line")) {
 				return d === removedSet;
+				}
 			}).remove();
 			}
 		}
@@ -603,9 +620,11 @@ document.addEventListener("DOMContentLoaded", async function () {
 			//var opacity = historyIndex / 10; // 
 			//return historyIndex >= 0 && opacity > 0; 
 			
+			if (!d3.select(this).classed("snapshot-line")) {
 			// checks that the paths plotted is in the lineHistory 
 			//  if paths is not plotted returns -1
 			return lineHistory.indexOf(d) >= 0;
+			}
 		}).attr("stroke-opacity", function (d, i) {
 			// When appending a new path element to the SVG container 
 			//  using svg_bonds.append("path"), D3.js appends it to the end of the DOM, 
@@ -622,7 +641,7 @@ document.addEventListener("DOMContentLoaded", async function () {
 			.append("path")
 			.datum(filteredBondsData)
 			.attr("fill", "none")
-			.attr("stroke", "green")
+			.attr("stroke", "red")
 			.attr("stroke-width", 2)
 			// actually redraws the graph
 			// "d" is "define"/"data" attribute
