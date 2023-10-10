@@ -53,6 +53,10 @@ document.addEventListener("DOMContentLoaded", async function () {
 	var x = d3.scaleTime().range([margin.left, width - margin.right]);
 	var y = d3.scaleLinear().range([height - margin.bottom, margin.top]);
 
+	console.log(margin.left);
+	console.log(x.invert(margin.left));
+	console.log(x.invert(width - margin.right));
+
 	// Define the line
 	var line = d3.line()
 	.x(function (d) { return x(d.date); })
@@ -111,6 +115,8 @@ document.addEventListener("DOMContentLoaded", async function () {
 		.attr("x", margin.left + 10)
 		.attr("y", margin.top + 10)
 		.attr("class", "info-text");
+
+	updateVerticalBar(initialXPosition)
 
 	//Add mousemove event to show/hide vertical bar and update data
 	console.log(svg.node())
@@ -185,7 +191,7 @@ document.addEventListener("DOMContentLoaded", async function () {
 	function updateVerticalBar(mouseX) {
 		var dateValue = x.invert(mouseX);
 		var bisectDate = d3.bisector(function (d) { return d.date; }).left;
-		var index = bisectDate(spxData, dateValue, 1);
+		var index = bisectDate(spxData, dateValue, 1) - 1;
 		var dataPoint = spxData[index];
 
 		if (dataPoint) {
@@ -239,6 +245,10 @@ document.addEventListener("DOMContentLoaded", async function () {
 			svg.selectAll(".snapshot-bar").remove();
 			//recall that yield curve snapshot was drawn to diff. container/graph
 			svg_bonds.selectAll(".snapshot-line").remove();
+			// Remove previous text elements associated w/ snapYieldSpread, snapYieldShape if they exist
+			infoGroup.selectAll(".snap-yield-spread, .snap-yield-shape").remove();
+			// prevents previous snapshotData from being displayed as text
+			snapshotData = null; 
 			snapshotXPosition = null;
 			// toggle button text
 			snapshotButton.text("Snapshot"); 
@@ -762,6 +772,7 @@ document.addEventListener("DOMContentLoaded", async function () {
 		// Conditionally append snapYieldSpread and snapYieldShape
 		if (snapshotData && snapshotData.length > 0) {
 			baseText.append("tspan")
+			.attr("class", "snap-yield-spread")
 			.text("\t" +  snapYieldSpread)
 			.style("fill", "orange");
 		}
@@ -774,6 +785,7 @@ document.addEventListener("DOMContentLoaded", async function () {
 		
 		if  (snapshotData && snapshotData.length > 0) {
 			baseText.append("tspan")
+			.attr("class", "snap-yield-shape")
 			.text("\t" + snapYieldShape)
 			.style("fill", "orange");
 		}

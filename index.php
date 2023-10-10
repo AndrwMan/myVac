@@ -21,7 +21,7 @@
 	<script src="js/d3.min.js"></script>
 </head>
 <body>
-    <h1>Market Yield Data Versus Stock Market index</h1>
+    <h1>Bond Market (Treasury) versus Stock Market (SPX) performance</h1>
 
     <?php
     /* fetch bonds data */
