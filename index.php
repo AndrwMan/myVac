@@ -48,7 +48,7 @@
 	//$frequency = urlencode("d");  // Set the frequency to daily, do not need for right series
 
 	$file_type = urlencode("json");
-	//$file_type = urlencode("xml");	//uncomment respective code for returned format
+	//$file_type = urlencode("xml");	//uncomment respective code for diff. returned format
 
 	// get yield spread data once 
 	// $t10y3m_url = "{$base_url}?series_id=T10Y3M&api_key={$api_key}&observation_start={$start_date}&observation_end={$end_date}&file_type={$file_type}";
@@ -202,8 +202,8 @@
 
     // Define the Yahoo Finance API URL for historical data
     $base_url = "https://query1.finance.yahoo.com/v8/finance/chart/{$symbol}";
-	$test_url = "https://query1.finance.yahoo.com/v8/finance/chart/AAPL?metrics=high?&interval=1d&range=5d";
-	$test_url2 = "https://query1.finance.yahoo.com/v8/finance/chart/AAPL?";
+	//$test_url = "https://query1.finance.yahoo.com/v8/finance/chart/AAPL?metrics=high?&interval=1d&range=5d";
+	//$test_url2 = "https://query1.finance.yahoo.com/v8/finance/chart/AAPL?";
     
     // Set relevant data range (from 1999-01-01 to today)
     $start_date_tstamp = strtotime('1999-01-01'); // January 1, 1999
